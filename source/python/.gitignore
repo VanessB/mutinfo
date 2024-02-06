@@ -1,0 +1,14 @@
+# Bytecodes and cache (Python)
+__pycache__/
+*.py[cod]
+*$py.class
+*.swp
+*.old
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data and builds
+data
+build
+models
