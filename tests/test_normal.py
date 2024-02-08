@@ -123,10 +123,6 @@ def test_mutual_information_and_covariance():
             for test in range(n_tests):
                 correlation_coefficients = numpy.random.uniform(-1.0 + correlation_eps, 1.0 - correlation_eps, min(X_dimension, Y_dimension))
                 covariance = normal.CovViaTridiagonal(correlation_coefficients, numpy.eye(X_dimension), numpy.eye(Y_dimension))
-
-                #covariance_matrix = normal.correlation_to_covariance_matrix(correlation_coefficients, X_dimension, Y_dimension)
-                #mutual_information_1 = numpy.sum(normal.correlation_to_mutual_information(correlation_coefficients))
-                #mutual_information_2 = normal.covariance_matrix_to_mutual_information(covariance_matrix, X_dimension)
         
                 assert abs(covariance.mutual_information - normal.covariance_matrix_to_mutual_information(covariance.covariance, X_dimension)) < 1.0e-10, \
                 "Failed tests with random covariation matrices"

@@ -10,7 +10,7 @@ _metric_tree_types = {
 }
 
 
-class KSG:
+class kNN_based:
     def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}):
         """
         Create a Kraskov-Stogbauer-Grassberger k-NN based
@@ -25,11 +25,6 @@ class KSG:
             ('BallTree' or 'KDTree').
         tree_kwargs : dict, optional
             Metric tree additional arguments.
-
-        References
-        ----------
-        .. [1] A. Kraskov, H. Stogbauer and P. Grassberger, "Estimating mutual
-               information". Phys. Rev. E 69, 2004.
         """
 
         if k_neighbors < 1:
@@ -59,6 +54,32 @@ class KSG:
         """
         
         return _metric_tree_types[self.tree_type](data, metric="chebyshev", **self.tree_kwargs)
+
+
+class KSG(kNN_based):
+    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}):
+        """
+        Create a Kraskov-Stogbauer-Grassberger k-NN based
+        mutual information estimator.
+
+        Parameters
+        ----------
+        k_neighbors : int, optional
+            Number of nearest neighbors to use for estimation.
+        tree_type : str, optional
+            Specifies the type of metric tree used for estimation
+            ('BallTree' or 'KDTree').
+        tree_kwargs : dict, optional
+            Metric tree additional arguments.
+
+        References
+        ----------
+        .. [1] A. Kraskov, H. Stogbauer and P. Grassberger, "Estimating mutual
+               information". Phys. Rev. E 69, 2004.
+        """
+
+        super().__init__(k_neighbors, tree_type, tree_kwargs)
+
 
     def __call__(self, x: numpy.array, y: numpy.array, std: bool=False) -> float:
         """

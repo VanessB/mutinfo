@@ -1,25 +1,76 @@
 import numpy
 
-from mutinfo.distributions.base import CorrelatedNormal
-from mutinfo.estimators.ksg import KSG
+from mutinfo.distributions.base import CorrelatedNormal, CorrelatedUniform, CorrelatedStudent, SmoothedUniform
+from mutinfo.estimators.knn import KSG
+
+from . import estimator_tester
 
 
 def test_ksg_normal():
     """
-    Test the KSG estimator on normal distributions
+    Test the KSG estimator on normal distributions.
     """
 
-    atol = 0.05
-    rtol = 0.05
-    n_samples = 10000
+    estimator_tester.run_tests(
+        KSG,
+        CorrelatedNormal,
+        range(1, 3),
+        range(1, 3),
+        numpy.linspace(0.0, 1.0, 5),
+        "Bad KSG estimates for normal distribution",
+        n_samples=10000,
+        atol=0.05,
+        rtol=0.05
+    )
 
-    estimator = KSG()
-    for X_dimension in range(1,3):
-        for Y_dimension in range(1,3):
-            for mutual_information in numpy.linspace(0.0, 1.0, 5):
-                random_variable = CorrelatedNormal(mutual_information, X_dimension, Y_dimension)
-                x_y = random_variable.rvs(n_samples)
-                estimated_mutual_information = estimator(x_y[:,X_dimension:], x_y[:,:X_dimension])
+def test_ksg_uniform():
+    """
+    Test the KSG estimator on uniform distributions.
+    """
 
-                assert numpy.allclose(mutual_information, estimated_mutual_information, atol=atol, rtol=rtol), \
-                f"Bad KSG estimates for normal distribution ({X_dimension}, {Y_dimension}, {mutual_information})"
+    estimator_tester.run_tests(
+        KSG,
+        CorrelatedUniform,
+        range(1, 3),
+        range(1, 3),
+        numpy.linspace(0.0, 1.0, 5),
+        "Bad KSG estimates for uniform distribution",
+        n_samples=10000,
+        atol=0.05,
+        rtol=0.05
+    )
+
+def test_ksg_student():
+    """
+    Test the KSG estimator on Student's distributions.
+    """
+
+    for degrees_of_freedom in range(1,3):
+        estimator_tester.run_tests(
+            KSG,
+            lambda mutual_information, X_dimension, Y_dimension : CorrelatedStudent(mutual_information, X_dimension, Y_dimension, degrees_of_freedom),
+            range(1, 3),
+            range(1, 3),
+            numpy.linspace(0.5, 1.0, 5),
+            "Bad KSG estimates for Student's distribution",
+            n_samples=10000,
+            atol=0.1,
+            rtol=0.05
+        )
+
+def test_ksg_smoothed_uniform():
+    """
+    Test the KSG estimator on smoothed uniform distributions.
+    """
+
+    estimator_tester.run_tests(
+        KSG,
+        SmoothedUniform,
+        range(1, 3),
+        range(1, 3),
+        numpy.linspace(0.0, 1.0, 5),
+        "Bad KSG estimates for smoothed uniform distribution",
+        n_samples=10000,
+        atol=0.1,
+        rtol=0.05
+    )
