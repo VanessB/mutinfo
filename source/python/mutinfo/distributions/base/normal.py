@@ -2,9 +2,144 @@ import numpy
 from scipy.stats import Covariance, ortho_group
 from scipy.stats._multivariate import multivariate_normal_frozen
 
+from ...utils.checks import _check_mutual_information_value
+
+
+def _check_correlation_value(correlation_coefficient: float):
+    """
+    Checks a correlation coefficient to be within (-1.0; 1.0)
+
+    Parameters
+    ----------
+    correlation_coefficient : float or array_like
+        Correlation coefficient (lies in (-1.0; 1.0)).
+    """
+
+    if numpy.any(correlation_coefficient <= -1.0) or numpy.any(correlation_coefficient >= 1.0):
+        raise ValueError("Correlation coefficient must lie within (-1.0; 1.0)")
+
+def mutual_information_to_correlation(mutual_information: float) -> float:
+    """
+    Calculate the absolute value of the correlation coefficient between two
+    jointly Gaussian random variables given the value of mutual information.
+
+    Parameters
+    ----------
+    mutual_information : float or array_like
+        Mutual information (lies in [0.0; +inf)).
+
+    Returns
+    -------
+    correlation_coefficient : float or array_like
+        Corresponding correlation coefficient.
+    """
+
+    _check_mutual_information_value(mutual_information)
+
+    return numpy.sqrt(1 - numpy.exp(-2.0 * mutual_information))
+
+def correlation_to_mutual_information(correlation_coefficient: float) -> float:
+    """
+    Calculate the mutual information between two jointly Gaussian random
+    variables given the correlation coefficient.
+
+    Parameters
+    ----------
+    correlation_coefficient : float or array_like
+        Correlation coefficient (lies in (-1.0; 1.0)).
+
+    Returns
+    -------
+    mutual_information : float or array_like
+        Corresponding mutual information.
+    """
+
+    _check_correlation_value(correlation_coefficient)
+
+    return -0.5 * numpy.log(1.0 - correlation_coefficient**2)
+
+def covariance_matrix_to_mutual_information(covariance_matrix: numpy.array, split_dimension: int) -> float:
+    """
+    Calculate the mutual information between two jointly Gaussian random vectors
+    given the covariance matrix.
+
+    Parameters
+    ----------
+    covariance_matrix : np.array
+        Symmetric positive semidefinite matrix.
+    split_dimension : int
+        Specifies the dimension of the first vector.
+
+    Returns
+    -------
+    mutual_information : float
+        Corresponding mutual information.
+    """
+
+    if split_dimension <= 0:
+        raise ValueError("`split_dimension` must be positive")
+
+    if split_dimension >= covariance_matrix.shape[0]:
+        raise ValueError("`split_dimension` must less then covariance matrix dimension")
+
+    try:
+        _, X_Y_logabsdet = numpy.linalg.slogdet(covariance_matrix)
+        _, X_logabsdet   = numpy.linalg.slogdet(covariance_matrix[:split_dimension,:split_dimension])
+        _, Y_logabsdet   = numpy.linalg.slogdet(covariance_matrix[split_dimension:,split_dimension:])
+    except ValueError as slogdet_error:
+        raise ValueError("Covariance matrix must be symmetric and positive definite") from slogdet_error
+
+    return 0.5 * (X_logabsdet + Y_logabsdet - X_Y_logabsdet)
+
+def get_tridiagonal_whitening_parameters(correlation_coefficient: float) -> float:
+    """
+    Calculate the parameters (on- and off-diagonal elements)
+    of the whitening transform.
+
+    Parameters
+    ----------
+    correlation_coefficient : float or array_like
+        Correlation coefficient (lies in (-1.0; 1.0)).
+
+    Returns
+    -------
+    (on_diagoanl, off_diagonal) : tuple of float or array_like
+        Corresponding whitening transformation matrix elements.
+    """
+
+    _check_correlation_value(correlation_coefficient)
+    
+    alpha = 0.5 / numpy.sqrt(1 + correlation_coefficient)
+    beta  = 0.5 / numpy.sqrt(1 - correlation_coefficient)
+
+    return (alpha + beta, alpha - beta)
+
+def get_tridiagonal_colorizing_parameters(correlation_coefficient: float) -> float:
+    """
+    Calculate the parameters (on- and off-diagonal elements)
+    of the colorizing transform.
+
+    Parameters
+    ----------
+    correlation_coefficient : float or array_like
+        Correlation coefficient (lies in (-1.0; 1.0)).
+
+    Returns
+    -------
+    (on_diagoanl, off_diagonal) : tuple of float or array_like
+        Corresponding colorizing transformation matrix elements.
+    """
+
+    _check_correlation_value(correlation_coefficient)
+    
+    alpha = 0.5 * numpy.sqrt(1 + correlation_coefficient)
+    beta  = 0.5 * numpy.sqrt(1 - correlation_coefficient)
+
+    return (alpha + beta, alpha - beta)
+
 
 class CovViaTridiagonal(Covariance):
-    def __init__(self, correlation_coefficients: numpy.array,
+    def __init__(self, correlation_coefficient: numpy.array,
                  X_orthogonal_matrix: numpy.array=None,
                  Y_orthogonal_matrix: numpy.array=None):
         """
@@ -14,7 +149,7 @@ class CovViaTridiagonal(Covariance):
 
         Parameters
         ----------
-        correlation_coefficients : array_like
+        correlation_coefficient : array_like
             1D array of correlation coefficients between random vectors.
         X_orthogonal_matrix : array_like
             Linear orthogonal mapping which is applied to the first vector.
@@ -25,15 +160,15 @@ class CovViaTridiagonal(Covariance):
         self._X_orthogonal_matrix = X_orthogonal_matrix
         self._Y_orthogonal_matrix = Y_orthogonal_matrix
 
-        if len(correlation_coefficients.shape) != 1:
-            raise ValueError("`correlation_coefficients` must be a 1D array")
+        if len(correlation_coefficient.shape) != 1:
+            raise ValueError("`correlation_coefficient` must be a 1D array")
 
-        _check_correlation_value(correlation_coefficients)
-        self._correlation_coefficients = correlation_coefficients
+        _check_correlation_value(correlation_coefficient)
+        self._correlation_coefficient = correlation_coefficient
         
-        self._min_dimension = correlation_coefficients.shape[0]
-        self._X_dimension = self._min_dimension
-        self._Y_dimension = self._min_dimension
+        min_dimension = correlation_coefficient.shape[0]
+        self._X_dimension = min_dimension
+        self._Y_dimension = min_dimension
         #self._max_dimension = max(self._X_dimension, self._Y_dimension)
 
         # Check matrices, avoid code repetition.
@@ -47,15 +182,16 @@ class CovViaTridiagonal(Covariance):
 
                 setattr(self, f"_{letter}_dimension", matrix.shape[0])
 
-        if self._X_dimension != self._min_dimension and self._Y_dimension != self._min_dimension:
-            raise ValueError("Dimensions of vectors can not be deduced; try checking the shapes of `correlation_coefficients` and `X/Y_orthogonal_matrix`")
+        if (self._X_dimension != min_dimension and self._Y_dimension != min_dimension) or \
+           (self._X_dimension < min_dimension or self._Y_dimension < min_dimension):
+            raise ValueError("Dimensions of vectors can not be deduced; try checking the shapes of `correlation_coefficient` and `X/Y_orthogonal_matrix`")
 
         # Explicitly define covariance matrix.
         self._covariance = self._assemble_covariance_matrix()
 
         # Parameters for whitening and colorizing transformations.
-        self._whitening_parameters  = get_tridiagonal_whitening_parameters(self._correlation_coefficients)
-        self._colorizing_parameters = get_tridiagonal_colorizing_parameters(self._correlation_coefficients)
+        self._whitening_parameters  = get_tridiagonal_whitening_parameters(self._correlation_coefficient)
+        self._colorizing_parameters = get_tridiagonal_colorizing_parameters(self._correlation_coefficient)
 
         self._allow_singular = False
 
@@ -87,10 +223,11 @@ class CovViaTridiagonal(Covariance):
         """
 
         for parameters in [on_diagonal, off_diagonal]:
+            min_dimension = min(self._X_dimension, self._Y_dimension)
             if len(parameters.shape) != 1:
                 raise ValueError(f"`on_diagonal` and `off_diagonal` must be 1D arrays")
-            if parameters.shape[0] != self._min_dimension:
-                raise ValueError(f"`on_diagonal` and `off_diagonal` must be arrays of length {self._min_dimension}")
+            if parameters.shape[0] != min_dimension:
+                raise ValueError(f"`on_diagonal` and `off_diagonal` must be arrays of length {min_dimension}")
 
         if self._X_dimension <= self._Y_dimension:
             return on_diagonal * x[...,:] + y[...,:self._X_dimension] * off_diagonal, \
@@ -196,19 +333,19 @@ class CovViaTridiagonal(Covariance):
     @property
     def componentwise_mutual_information(self) -> numpy.array:
         """
-        Calculate componentwise mutual information.
+        Componentwise mutual information.
 
         Returns
         -------
         componentwise_mutual_information : np.array
             Componentwise mutual information
         """
-        return correlation_to_mutual_information(self._correlation_coefficients)
+        return correlation_to_mutual_information(self._correlation_coefficient)
 
     @property
     def mutual_information(self) -> float:
         """
-        Calculate mutual information.
+        Mutual information.
 
         Returns
         -------
@@ -242,7 +379,7 @@ class CovViaTridiagonal(Covariance):
     
     def _assemble_covariance_matrix(self) -> numpy.array:
         """
-        Asseble covariance matrix.
+        Assemble the covariance matrix.
 
         Returns
         -------
@@ -251,7 +388,7 @@ class CovViaTridiagonal(Covariance):
         """
 
         correlation_block = numpy.zeros((self._X_dimension, self._Y_dimension))
-        numpy.fill_diagonal(correlation_block, self._correlation_coefficients)
+        numpy.fill_diagonal(correlation_block, self._correlation_coefficient)
         
         if not self._X_orthogonal_matrix is None:
             correlation_block = self._X_orthogonal_matrix @ correlation_block
@@ -271,7 +408,7 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         matrix : array_like
-            A matrix to check.
+            Matrix to check.
 
         Returns
         -------
@@ -310,7 +447,7 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
     @property
     def mutual_information(self) -> float:
         """
-        Calculate mutual information.
+        Mutual information.
 
         Returns
         -------
@@ -318,137 +455,3 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
             Mutual information
         """
         return self.cov_object.mutual_information
-
-
-def _check_correlation_value(correlation_coefficient: float):
-    """
-    Checks correlation coefficient to be within (-1.0; 1.0)
-
-    Parameters
-    ----------
-    correlation_coefficient : float or array_like
-        Correlation coefficient (lies in (-1.0; 1.0)).
-    """
-
-    if numpy.any(correlation_coefficient <= -1.0) or numpy.any(correlation_coefficient >= 1.0):
-        raise ValueError("Correlation coefficient must lie within (-1.0; 1.0)")
-
-def mutual_information_to_correlation(mutual_information: float) -> float:
-    """
-    Calculate absolute value of correlation coefficient between two jointly
-    Gaussian random variables given the value of mutual information.
-
-    Parameters
-    ----------
-    mutual_information : float or array_like
-        Mutual information (lies in [0.0; +inf)).
-
-    Returns
-    -------
-    correlation_coefficient : float or array_like
-        Corresponding correlation coefficient.
-    """
-
-    if numpy.any(mutual_information < 0.0):
-        raise ValueError("Mutual information must be non-negative")
-
-    return numpy.sqrt(1 - numpy.exp(-2.0 * mutual_information))
-
-def correlation_to_mutual_information(correlation_coefficient: float) -> float:
-    """
-    Calculate mutual information between two jointly Gaussian random variables
-    given the correlation coefficient.
-
-    Parameters
-    ----------
-    correlation_coefficient : float or array_like
-        Correlation coefficient (lies in (-1.0; 1.0)).
-
-    Returns
-    -------
-    mutual_information : float or array_like
-        Corresponding mutual information.
-    """
-
-    _check_correlation_value(correlation_coefficient)
-
-    return -0.5 * numpy.log(1.0 - correlation_coefficient**2)
-
-def covariance_matrix_to_mutual_information(covariance_matrix: numpy.array, split_dimension: int) -> float:
-    """
-    Calculate mutual information between two jointly Gaussian random vectors
-    given the covariance matrix.
-
-    Parameters
-    ----------
-    covariance_matrix : np.array
-        Symmetric positive semidefinite matrix.
-    split_dimension : int
-        Specifies the dimension of the first vector.
-
-    Returns
-    -------
-    mutual_information : float
-        Corresponding mutual information.
-    """
-
-    if split_dimension <= 0:
-        raise ValueError("`split_dimension` must be positive")
-
-    if split_dimension >= covariance_matrix.shape[0]:
-        raise ValueError("`split_dimension` must less then covariance matrix dimension")
-
-    try:
-        _, X_Y_logabsdet = numpy.linalg.slogdet(covariance_matrix)
-        _, X_logabsdet   = numpy.linalg.slogdet(covariance_matrix[:split_dimension,:split_dimension])
-        _, Y_logabsdet   = numpy.linalg.slogdet(covariance_matrix[split_dimension:,split_dimension:])
-    except ValueError as slogdet_error:
-        raise ValueError("Covariance matrix must be symmetric and positive definite") from slogdet_error
-
-    return 0.5 * (X_logabsdet + Y_logabsdet - X_Y_logabsdet)
-
-def get_tridiagonal_whitening_parameters(correlation_coefficient: float) -> float:
-    """
-    Calculate parameters (on- and off-diagonal elements)
-    of the whitening transform.
-
-    Parameters
-    ----------
-    correlation_coefficient : float or array_like
-        Correlation coefficient (lies in (-1.0; 1.0)).
-
-    Returns
-    -------
-    (on_diagoanl, off_diagonal) : tuple of float or array_like
-        Corresponding whitening transformation matrix elements.
-    """
-
-    _check_correlation_value(correlation_coefficient)
-    
-    alpha = 0.5 / numpy.sqrt(1 + correlation_coefficient)
-    beta  = 0.5 / numpy.sqrt(1 - correlation_coefficient)
-
-    return (alpha + beta, alpha - beta)
-
-def get_tridiagonal_colorizing_parameters(correlation_coefficient: float) -> float:
-    """
-    Calculate parameters (on- and off-diagonal elements)
-    of the colorizing transform.
-
-    Parameters
-    ----------
-    correlation_coefficient : float or array_like
-        Correlation coefficient (lies in (-1.0; 1.0)).
-
-    Returns
-    -------
-    (on_diagoanl, off_diagonal) : tuple of float or array_like
-        Corresponding colorizing transformation matrix elements.
-    """
-
-    _check_correlation_value(correlation_coefficient)
-    
-    alpha = 0.5 * numpy.sqrt(1 + correlation_coefficient)
-    beta  = 0.5 * numpy.sqrt(1 - correlation_coefficient)
-
-    return (alpha + beta, alpha - beta)
