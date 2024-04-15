@@ -200,7 +200,7 @@ def CorrelatedStudent(mutual_information: float, X_dimension: int,
 
     correlation_mutual_information = mutual_information - correction_term
     if correlation_mutual_information < 0.0:
-        raise ValueError(f"Impossible to create a correlated Student's distribution with the desired mutual information. The latter should be at least {correction_term:.1f} nat")
+        raise ValueError(f"Impossible to create a correlated Student's distribution with the desired mutual information. The latter should be at least {correction_term:.2f} nat")
 
     covariance = _generate_cov_via_tridiagonal(
         correlation_mutual_information,
@@ -214,7 +214,7 @@ def CorrelatedStudent(mutual_information: float, X_dimension: int,
 
 def SmoothedUniform(mutual_information: float,
                     X_dimension: int, Y_dimension: int,
-                    randomize_smoothing_epsilons: bool=True) -> smoothed_uniform.smoothed_uniform:
+                    randomize_smoothing_epsilon: bool=True) -> smoothed_uniform.smoothed_uniform:
     """
     Generate multivariate smoothed uniform distribution
     with defined mutual information between subvectors.
@@ -225,7 +225,7 @@ def SmoothedUniform(mutual_information: float,
         Mutual information (lies within [0.0; +inf)).
     dimension : int
         Dimension of the first and the second vector.
-    randomize_smoothing_epsilons : bool, optional
+    randomize_smoothing_epsilon : bool, optional
         Randomize smooting constants (mutual information stays fixed).
         If not randomized, the smooting epsilon constants are equal
         and non-negative.
@@ -238,7 +238,7 @@ def SmoothedUniform(mutual_information: float,
     """
 
     min_dimension = min(X_dimension, Y_dimension)
-    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_smoothing_epsilons)
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_smoothing_epsilon)
     inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
     
     return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon, X_dimension, Y_dimension)

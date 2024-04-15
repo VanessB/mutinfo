@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024.04.1
+
+- k-Sliced mutual information estimator added.
+
 ## 2024.02.1
 
 - Correlated Gaussian distribution added.

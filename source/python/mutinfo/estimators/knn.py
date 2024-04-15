@@ -13,8 +13,7 @@ _metric_tree_types = {
 class kNN_based:
     def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}):
         """
-        Create a Kraskov-Stogbauer-Grassberger k-NN based
-        mutual information estimator.
+        Create a k-NN based mutual information estimator.
 
         Parameters
         ----------
@@ -53,10 +52,19 @@ class kNN_based:
             The metric tree over `data` points.
         """
         
-        return _metric_tree_types[self.tree_type](data, metric="chebyshev", **self.tree_kwargs)
+        return _metric_tree_types[self.tree_type](data, **self.tree_kwargs)
 
 
 class KSG(kNN_based):
+    """
+    Kraskov-Stogbauer-Grassberger k-NN based mutual information estimator.
+
+    References
+    ----------
+    .. [1] A. Kraskov, H. Stogbauer and P. Grassberger, "Estimating mutual
+           information". Phys. Rev. E 69, 2004.
+    """
+    
     def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}):
         """
         Create a Kraskov-Stogbauer-Grassberger k-NN based
@@ -78,12 +86,13 @@ class KSG(kNN_based):
                information". Phys. Rev. E 69, 2004.
         """
 
+        tree_kwargs["metric"] = "chebyshev"
         super().__init__(k_neighbors, tree_type, tree_kwargs)
 
 
     def __call__(self, x: numpy.array, y: numpy.array, std: bool=False) -> float:
         """
-        Estimate the value of mutual information between random vectors
+        Estimate the value of mutual information between two random vectors
         using samples `x` and `y`.
 
         Parameters
@@ -97,8 +106,10 @@ class KSG(kNN_based):
 
         Returns
         -------
-        mutual information : float
+        mutual_information : float
             Estimated value of mutual information.
+        mutual_information_std : float or None
+            Standard deviation of the estimate, or None if `std=False`
         """
 
         n_samples = x.shape[0]
@@ -114,13 +125,13 @@ class KSG(kNN_based):
         X_dimension = x.shape[1]
         Y_dimension = y.shape[1]
 
-        # Use metric trees for fast neares neighbors search.
+        # Use metric trees for fast nearest neighbors search.
         x_tree = self.make_tree(x)
         y_tree = self.make_tree(y)
         x_y_tree = self.make_tree(x_y)
 
         x_y_distances, _ = x_y_tree.query(x_y, k=(k_neighbors+1))
-        x_y_distances = x_y_distances[:,k_neighbors] - 1.0e-15 # Add a small epsilon for tolerance.
+        x_y_distances = x_y_distances[:,k_neighbors] - 1.0e-15 # Subtract a small epsilon for tolerance.
 
         # Count marginal neighbors within x_y_distances.
         x_count = x_tree.query_radius(x, x_y_distances, count_only=True)
