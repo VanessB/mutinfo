@@ -12,9 +12,9 @@ def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float):
 
     Parameters
     ----------
-    smoothing_epsilon : float or array_like
-        Smoothing epsilon parameter of a smoothed uniform distribution
-        (strictly positive).
+    inverse_smoothing_epsilon : float or array_like
+        Inverse smoothing epsilon parameter of a smoothed uniform distribution
+        (non-negative).
     """
 
     if numpy.any(inverse_smoothing_epsilon < 0.0):
@@ -23,28 +23,31 @@ def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float):
 def inverse_smoothing_epsilon_to_mutual_information(inverse_smoothing_epsilon: float) -> float:
     """
     Calculate the mutual information between two random variables with a smoothed
-    uniform joint distribution defined by an inverse smoothing epsilon.
+    uniform joint distribution defined by the inverse smoothing epsilon.
 
     Parameters
     ----------
-    inverse_smoothing_epsilon : array_like
+    inverse_smoothing_epsilon : float or array_like
         Inverse smoothing epsilon parameter of a smoothed uniform distribution
         (strictly positive).
 
     Returns
     -------
-    mutual_information : array_like
+    mutual_information : float or array_like
         Corresponding mutual information.
     """
 
     _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon)
 
+    is_float = isinstance(inverse_smoothing_epsilon, float)
+    inverse_smoothing_epsilon = numpy.asarray(inverse_smoothing_epsilon)
+    
     mask = inverse_smoothing_epsilon > 2.0
     mutual_information = numpy.zeros_like(inverse_smoothing_epsilon)
     mutual_information[ mask] = 1.0 / inverse_smoothing_epsilon[mask] + numpy.log(0.5 * inverse_smoothing_epsilon[mask])
     mutual_information[~mask] = 0.25 * inverse_smoothing_epsilon[~mask]
 
-    return mutual_information
+    return mutual_information.item() if is_float else mutual_information 
 
 def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float) -> float:
     """
@@ -58,18 +61,21 @@ def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float) -
 
     Returns
     -------
-    inverse_correlation_coefficient : float or array_like
-        Corresponding inverse correlation coefficient.
+    inverse_smoothing_epsilon : float or array_like
+        Corresponding inverse smoothing epsilon.
     """
 
     _check_mutual_information_value(mutual_information)
+
+    is_float = isinstance(mutual_information, float)
+    mutual_information = numpy.asarray(mutual_information)
 
     mask = mutual_information < 0.5
     inverse_smoothing_epsilon = numpy.zeros_like(mutual_information)
     inverse_smoothing_epsilon[ mask] = 4.0 * mutual_information[mask]
     inverse_smoothing_epsilon[~mask] = -1.0 / numpy.real(lambertw(-0.5 * numpy.exp(-mutual_information[~mask])))
 
-    return inverse_smoothing_epsilon
+    return inverse_smoothing_epsilon.item() if is_float else inverse_smoothing_epsilon 
 
 
 class smoothed_uniform(multi_rv_frozen):

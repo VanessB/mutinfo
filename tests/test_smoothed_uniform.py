@@ -4,21 +4,23 @@ from scipy.stats import ortho_group
 from mutinfo.distributions.base import smoothed_uniform
 
 
-def test_mutual_information_and_smoothing_epsilon():
+def test_mutual_information_and_inverse_smoothing_epsilon():
     """
-    Tests the functions which convert mutual information to smoothing
-    constant and vice versa.
+    Tests the functions which convert mutual information to
+    inverse smoothing constant and vice versa.
     """
 
     # `float` tests.
-    #assert smoothed_uniform.inverse_smoothing_epsilon_to_mutual_information(0.0) == 0.0, \
-    #"Zero inverse smoothing epsilon must be equivalent to zero mutual information in the case of a smoothed uniform distribution."
-    #assert smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(0.0) == 0.0, \
-    #"Zero inverse smoothing epsilon must be equivalent to zero mutual information in the case of a smoothed uniform distribution."
+    assert smoothed_uniform.inverse_smoothing_epsilon_to_mutual_information(0.0) == 0.0, \
+    "Zero inverse smoothing epsilon must be equivalent to zero mutual information in the case of a smoothed uniform distribution."
+    assert smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(0.0) == 0.0, \
+    "Zero inverse smoothing epsilon must be equivalent to zero mutual information in the case of a smoothed uniform distribution."
 
-    #true_mutual_information = 10.0
-    #assert abs(normal.inverse_smoothing_epsilon_to_mutual_information(normal.mutual_information_to_inverse_smoothing_epsilon(true_mutual_information)) - true_mutual_information) < 1.0e-6, \
-    #"Mutual information to inverse smoothing epsilon conversion is inconsistent (floats)."
+    true_mutual_information = 10.0
+    assert abs(smoothed_uniform.inverse_smoothing_epsilon_to_mutual_information(
+        smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(true_mutual_information)
+    ) - true_mutual_information) < 1.0e-6, \
+    "Mutual information to inverse smoothing epsilon conversion is inconsistent (floats)."
 
     # NumPy tests.
     true_inverse_smoothing_epsilon = numpy.array([[0.0, 1.0, 2.0], [5.0, 10.0, 1.0e4]])

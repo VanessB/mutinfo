@@ -2,6 +2,7 @@ import numpy
 from scipy.special import ndtr, ndtri
 from scipy.stats import ortho_group
 
+from . import gamma_exponential
 from . import normal
 from . import smoothed_uniform
 from . import student
@@ -242,3 +243,35 @@ def SmoothedUniform(mutual_information: float,
     inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
     
     return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon, X_dimension, Y_dimension)
+
+
+def GammaExponential(mutual_information: float,
+                     X_dimension: int, Y_dimension: int,
+                     randomize_shape_parameters: bool=True) -> gamma_exponential.gamma_exponential:
+    """
+    Generate multivariate gamma-exponential distribution
+    with defined mutual information between subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimension : int
+        Dimension of the first and the second vector.
+    randomize_shape_parameters : bool, optional
+        Randomize shape parameters (mutual information stays fixed).
+        If not randomized, the shape parameters are equal
+        and non-negative.
+
+    Returns
+    -------
+    random_variable : gamma_exponential.gamma_exponential
+        An instance of gamma_exponential.gamma_exponential with
+        defined mutual information.
+    """
+
+    min_dimension = min(X_dimension, Y_dimension)
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_shape_parameters)
+    inverse_shape_parameter = gamma_exponential.mutual_information_to_inverse_shape_parameter(componentwise_mutual_information)
+    
+    return gamma_exponential.gamma_exponential(inverse_shape_parameter, X_dimension, Y_dimension)
