@@ -12,12 +12,13 @@ as well as some parametric and non-parametric estimators.
 - [x] Correlated uniform distribution.
 - [x] Correlated Student distribution.
 - [x] Smoothed uniform distribution.
+- [x] Gamma-exponential distribution.
 
 ### Estimators
 
 - [x] Kraskov-Stogbauer-Grassberger
 - [ ] 3-Weighted Kozachenko-Leonenko
-- [ ] k-Sliced mutual information estimator
+- [x] k-Sliced mutual information estimator
 
 ## Getting started
 ### Examples
