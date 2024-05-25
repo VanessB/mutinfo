@@ -3,10 +3,10 @@ from scipy.special import lambertw
 from scipy.stats import uniform
 from scipy.stats._multivariate import multi_rv_frozen
 
-from ...utils.checks import _check_mutual_information_value
+from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float):
+def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float, name: str="inverse_smoothing_epsilon") -> None:
     """
     Checks an inverse smoothing epsilon parameter to be within [0.0; +inf)
 
@@ -18,7 +18,7 @@ def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float):
     """
 
     if numpy.any(inverse_smoothing_epsilon < 0.0):
-        raise ValueError("Inverse smoothing epsilon must be non-negative")
+        raise ValueError(f"Expected `{inverse_smoothing_epsilon}` be non-negative")
 
 def inverse_smoothing_epsilon_to_mutual_information(inverse_smoothing_epsilon: float) -> float:
     """
@@ -79,8 +79,8 @@ def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float) -
 
 
 class smoothed_uniform(multi_rv_frozen):
-    def __init__(self, inverse_smoothing_epsilon: numpy.array,
-                 X_dimension: int=None, Y_dimension: int=None, *args, **kwargs):
+    def __init__(self, inverse_smoothing_epsilon: numpy.ndarray,
+                 X_dimension: int=None, Y_dimension: int=None, *args, **kwargs) -> None:
         """
         Create a multivariate random vector with
         a smoothed uniform distribution.
@@ -96,6 +96,11 @@ class smoothed_uniform(multi_rv_frozen):
         """
 
         super().__init__(*args, **kwargs)
+
+        if not X_dimension is None:
+            _check_dimension_value(X_dimension, "X_dimension")
+        if not Y_dimension is None:
+            _check_dimension_value(Y_dimension, "Y_dimension")
 
         if len(inverse_smoothing_epsilon.shape) != 1:
             raise ValueError("`inverse_smoothing_epsilon` must be a 1D array")
@@ -113,32 +118,33 @@ class smoothed_uniform(multi_rv_frozen):
 
         self._dist = uniform()
 
-    def rvs(self, size: int) -> numpy.array:
+    def rvs(self, size: int=1) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
         Random variate.
 
         Parameters
         ----------
-        size : int
+        size : int, optional
             Number of samples.
 
         Returns
         -------
-        x_y : numpy.array
+        x_y : numpy.ndarray
             Random sampling.
         """
         
-        x_y = self._dist.rvs(size=(size, self._X_dimension + self._Y_dimension))
+        x = self._dist.rvs(size=(size, self._X_dimension))
+        y = self._dist.rvs(size=(size, self._Y_dimension))
 
         min_dimension = min(self._X_dimension, self._Y_dimension)
 
         # Rescale for large smoothing epsilons (does not affect mutual information).
-        x_y[:,-min_dimension:] = x_y[:,:min_dimension]  * numpy.minimum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:] + \
-                                 x_y[:,-min_dimension:] / numpy.maximum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:]
-        return x_y
+        y[...,-min_dimension:] = x[...,:min_dimension]  * numpy.minimum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:] + \
+                                 y[...,-min_dimension:] / numpy.maximum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:]
+        return x, y
 
     @property
-    def componentwise_mutual_information(self) -> numpy.array:
+    def componentwise_mutual_information(self) -> numpy.ndarray:
         """
         Componentwise mutual information.
 

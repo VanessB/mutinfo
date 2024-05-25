@@ -1,5 +1,11 @@
 # Changelog
 
+## 2024.05.1
+
+- A pair of image-generating diffeomorphisms added (TODO: test coverage).
+- Random variable samplers now yield a pair of arrays instead of one concatenated array.
+- Improved type hints and parameters checks.
+
 ## 2024.04.1
 
 - Gamma-exponential distribution added.

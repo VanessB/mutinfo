@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mutinfo"
-version = "2024.04.1"
+version = "2024.05.1"
 dependencies = [
   "numpy>=1.26",
   "scipy>=1.12",

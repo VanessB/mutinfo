@@ -5,6 +5,8 @@ from scipy.stats._multivariate import multi_rv_frozen
 
 from .normal import CovViaTridiagonal, correlated_multivariate_normal
 
+from ...utils.checks import _check_dimension_value
+
 
 def entropy_correction_term(dimension: int) -> float:
     """
@@ -20,6 +22,8 @@ def entropy_correction_term(dimension: int) -> float:
     correction_term : float
         Entropy correction term.
     """
+
+    _check_dimension_value(dimension)
 
     half_dimension = 0.5 * dimension
     return loggamma(half_dimension) - half_dimension * digamma(half_dimension)
@@ -45,6 +49,9 @@ def mutual_information_correction_term(X_dimension: int, Y_dimension: int,
         Entropy correction term.
     """
 
+    _check_dimension_value(X_dimension, "X_dimension")
+    _check_dimension_value(Y_dimension, "Y_dimension")
+
     return entropy_correction_term(degrees_of_freedom) + \
            entropy_correction_term(degrees_of_freedom + X_dimension + Y_dimension) - \
            entropy_correction_term(degrees_of_freedom + X_dimension) - \
@@ -52,7 +59,7 @@ def mutual_information_correction_term(X_dimension: int, Y_dimension: int,
 
 
 class correlated_multivariate_student(multi_rv_frozen):
-    def __init__(self, cov: CovViaTridiagonal, df: int, **kwargs):
+    def __init__(self, cov: CovViaTridiagonal, df: int, **kwargs) -> None:
         """
         Create a frozen multivariate Student's distribution with known mutual information.
 
@@ -72,7 +79,7 @@ class correlated_multivariate_student(multi_rv_frozen):
         self.normal = correlated_multivariate_normal(cov)
         self.chi2 = chi2(df=df, scale=1.0/df)
 
-    def rvs(self, size: int) -> numpy.array:
+    def rvs(self, size: int) -> numpy.ndarray:
         """
         Random variate.
 
@@ -83,17 +90,17 @@ class correlated_multivariate_student(multi_rv_frozen):
 
         Returns
         -------
-        x_y : numpy.array
+        x_y : numpy.ndarray
             Random sampling.
         """
         
-        normal_x_y = self.normal.rvs(size)
+        normal_x, normal_y = self.normal.rvs(size)
         squared_magnitude = self.chi2.rvs(size)
 
-        return normal_x_y * numpy.sqrt(squared_magnitude[:,None])
+        return normal_x * numpy.sqrt(squared_magnitude[:,None]), normal_y * numpy.sqrt(squared_magnitude[:,None])
 
     @property
-    def mutual_information(self):
+    def mutual_information(self) -> float:
         """
         Mutual information.
         """

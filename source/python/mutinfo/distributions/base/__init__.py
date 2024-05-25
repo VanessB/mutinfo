@@ -8,8 +8,10 @@ from . import smoothed_uniform
 from . import student
 from .. import mapped
 
+from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
-def _sample_from_simplex(dimension: int) -> numpy.array:
+
+def _sample_from_simplex(dimension: int) -> numpy.ndarray:
     """
     Obtain a sample from the uniform distribution on a multidimensional simplex.
 
@@ -20,7 +22,7 @@ def _sample_from_simplex(dimension: int) -> numpy.array:
 
     Returns
     -------
-    sample ; numpy.array
+    sample ; numpy.ndarray
         One sample from the uniform distribution on a multidimensional simplex.
     """
     
@@ -29,7 +31,7 @@ def _sample_from_simplex(dimension: int) -> numpy.array:
 
 
 def _distribute_mutual_information(mutual_information: float, dimension: int,
-                                   uniform: bool=True) -> numpy.array:
+                                   uniform: bool=True) -> numpy.ndarray:
     """
     Uniformly or randomly distribute mutual information along dimensions.
 
@@ -44,12 +46,11 @@ def _distribute_mutual_information(mutual_information: float, dimension: int,
 
     Returns
     -------
-    componentwise_mutual_information : numpy.array
+    componentwise_mutual_information : numpy.ndarray
         1D array of componentwise mutual information values.
     """
 
-    if dimension < 1:
-        raise ValueError("Both dimensions must be greater then 0")
+    _check_dimension_value(dimension)
 
     if uniform:
         componentwise_mutual_information = mutual_information * numpy.ones(dimension) / dimension
@@ -64,7 +65,7 @@ def _generate_cov_via_tridiagonal(mutual_information: float, X_dimension: int,
                                   Y_dimension: int, randomize_correlation: bool=True,
                                   randomize_interactions: bool=True) -> normal.CovViaTridiagonal:
     """
-    Generate covariance matrix for correlated multivariate normal distribution
+    Create a covariance matrix for a correlated multivariate normal distribution
     with defined mutual information between subvectors.
 
     Parameters
@@ -104,7 +105,7 @@ def _generate_cov_via_tridiagonal(mutual_information: float, X_dimension: int,
 
 def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
     """
-    Generate multivariate correlated normal distribution
+    Create a multivariate correlated normal distribution
     with defined mutual information between subvectors.
 
     Parameters
@@ -135,7 +136,7 @@ def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
 
 def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
     """
-    Generate multivariate correlated uniform distribution
+    Create a multivariate correlated uniform distribution
     with defined mutual information between subvectors.
 
     Parameters
@@ -160,7 +161,8 @@ def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
         defined mutual information and ndtr (normal to uniform) mapping.
     """
 
-    return mapped.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), ndtr, ndtri)
+    # Use Gaussian CDF to acquire the uniform distribution.
+    return mapped.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), lambda x_y: (ndtr(x_y[0]), ndtr(x_y[1])), lambda x_y: (ndtri(x_y[0]), ndtri(x_y[1])))
 
 
 def CorrelatedStudent(mutual_information: float, X_dimension: int,
@@ -168,7 +170,7 @@ def CorrelatedStudent(mutual_information: float, X_dimension: int,
                       randomize_correlation: bool=True,
                       randomize_interactions: bool=True) -> student.correlated_multivariate_student:
     """
-    Generate multivariate correlated Student's distribution
+    Create a multivariate correlated Student's distribution
     with defined mutual information between subvectors.
 
     Parameters
@@ -217,7 +219,7 @@ def SmoothedUniform(mutual_information: float,
                     X_dimension: int, Y_dimension: int,
                     randomize_smoothing_epsilon: bool=True) -> smoothed_uniform.smoothed_uniform:
     """
-    Generate multivariate smoothed uniform distribution
+    Create a multivariate smoothed uniform distribution
     with defined mutual information between subvectors.
 
     Parameters
@@ -249,7 +251,7 @@ def GammaExponential(mutual_information: float,
                      X_dimension: int, Y_dimension: int,
                      randomize_shape_parameters: bool=True) -> gamma_exponential.gamma_exponential:
     """
-    Generate multivariate gamma-exponential distribution
+    Create a multivariate gamma-exponential distribution
     with defined mutual information between subvectors.
 
     Parameters
