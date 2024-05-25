@@ -3,10 +3,10 @@ from scipy.stats._multivariate import multi_rv_frozen
 
 class mapped_multi_rv_frozen(multi_rv_frozen):
     def __init__(self, base_rv: multi_rv_frozen, mapping: callable,
-                 inverse_mapping: callable=None, *args, **kwargs):
+                 inverse_mapping: callable=None, *args, **kwargs) -> None:
         """
-        Create a multivariate random vector with a psuhforward distribution
-        of random vactor `multi_rv_frozen` via mapping `mapping`.
+        Create a multivariate random vector with a pushforward distribution
+        of a random vactor `multi_rv_frozen` via a mapping `mapping`.
 
         Parameters
         ----------

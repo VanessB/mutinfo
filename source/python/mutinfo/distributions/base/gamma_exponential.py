@@ -5,12 +5,12 @@ from scipy.special import digamma
 from scipy.stats import gamma, expon
 from scipy.stats._multivariate import multi_rv_frozen
 
-from ...utils.checks import _check_mutual_information_value
+from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
 _EPS = 1.0e-6
 
-def _check_inverse_shape_parameter_value(inverse_shape_parameter: float):
+def _check_inverse_shape_parameter_value(inverse_shape_parameter: float, name: str="inverse_shape_parameter") -> None:
     """
     Checks inverse shape parameter to be within [0.0; +inf)
 
@@ -19,10 +19,13 @@ def _check_inverse_shape_parameter_value(inverse_shape_parameter: float):
     inverse_shape_parameter : float or array_like
         Inverse shape parameter of a gamma-exponential distribution
         (non-negative).
+    name : str, optional
+        Name of the variable to be checked.
+        Default is "inverse_shape_parameter"
     """
 
     if numpy.any(inverse_shape_parameter < 0.0):
-        raise ValueError("Inverse shape parameter must be non-negative")
+        raise ValueError(f"Expected `{name}` to be non-negative")
 
 def _scalar_inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float) -> float:
     """
@@ -136,8 +139,8 @@ def mutual_information_to_inverse_shape_parameter(mutual_information: float) -> 
 
 
 class gamma_exponential(multi_rv_frozen):
-    def __init__(self, inverse_shape_parameter: numpy.array,
-                 X_dimension: int=None, Y_dimension: int=None, *args, **kwargs):
+    def __init__(self, inverse_shape_parameter: numpy.ndarray,
+                 X_dimension: int=None, Y_dimension: int=None, *args, **kwargs) -> None:
         """
         Create a multivariate random vector with
         a gamma-exponential distribution.
@@ -154,6 +157,11 @@ class gamma_exponential(multi_rv_frozen):
 
         super().__init__(*args, **kwargs)
 
+        if not X_dimension is None:
+            _check_dimension_value(X_dimension, "X_dimension")
+        if not Y_dimension is None:
+            _check_dimension_value(Y_dimension, "Y_dimension")
+
         if len(inverse_shape_parameter.shape) != 1:
             raise ValueError("`inverse_shape_parameter` must be a 1D array")
 
@@ -168,18 +176,18 @@ class gamma_exponential(multi_rv_frozen):
            (self._X_dimension < min_dimension or self._Y_dimension < min_dimension):
             raise ValueError("Dimensions of vectors can not be deduced; try checking the shape of `inverse_shape_parameter` and the values of `X/Y_dimension`")
 
-    def rvs(self, size: int) -> numpy.array:
+    def rvs(self, size: int=1) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
         Random variate.
 
         Parameters
         ----------
-        size : int
+        size : int, optional
             Number of samples.
 
         Returns
         -------
-        x_y : numpy.array
+        x_y : numpy.ndarray
             Random sampling.
         """
 
@@ -195,13 +203,11 @@ class gamma_exponential(multi_rv_frozen):
         y[:,-min_dimension:] = y[:,-min_dimension:] - x[:,-min_dimension:]
         
         #y[:,-min_dimension:] = y[:,-min_dimension:] / x[:,-min_dimension:]
-            
-        x_y = numpy.concatenate([x, y], axis=1)
         
-        return x_y
+        return x, y
 
     @property
-    def componentwise_mutual_information(self) -> numpy.array:
+    def componentwise_mutual_information(self) -> numpy.ndarray:
         """
         Componentwise mutual information.
 

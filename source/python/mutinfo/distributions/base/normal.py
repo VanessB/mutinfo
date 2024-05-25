@@ -2,10 +2,10 @@ import numpy
 from scipy.stats import Covariance, ortho_group
 from scipy.stats._multivariate import multivariate_normal_frozen
 
-from ...utils.checks import _check_mutual_information_value
+from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _check_correlation_value(correlation_coefficient: float):
+def _check_correlation_value(correlation_coefficient: float, name: str="correlation_coefficient") -> None:
     """
     Checks a correlation coefficient to be within (-1.0; 1.0)
 
@@ -13,10 +13,13 @@ def _check_correlation_value(correlation_coefficient: float):
     ----------
     correlation_coefficient : float or array_like
         Correlation coefficient (lies in (-1.0; 1.0)).
+    name : str, optional
+        Name of the variable to be checked.
+        Default is "correlation_coefficient"
     """
 
     if numpy.any(correlation_coefficient <= -1.0) or numpy.any(correlation_coefficient >= 1.0):
-        raise ValueError("Correlation coefficient must lie within (-1.0; 1.0)")
+        raise ValueError(f"Expected `{name}` to lie within (-1.0; 1.0)")
 
 def mutual_information_to_correlation(mutual_information: float) -> float:
     """
@@ -58,7 +61,7 @@ def correlation_to_mutual_information(correlation_coefficient: float) -> float:
 
     return -0.5 * numpy.log(1.0 - correlation_coefficient**2)
 
-def covariance_matrix_to_mutual_information(covariance_matrix: numpy.array, split_dimension: int) -> float:
+def covariance_matrix_to_mutual_information(covariance_matrix: numpy.ndarray, split_dimension: int) -> float:
     """
     Calculate the mutual information between two jointly Gaussian random vectors
     given the covariance matrix.
@@ -76,11 +79,10 @@ def covariance_matrix_to_mutual_information(covariance_matrix: numpy.array, spli
         Corresponding mutual information.
     """
 
-    if split_dimension <= 0:
-        raise ValueError("`split_dimension` must be positive")
+    _check_dimension_value(split_dimension, "split_dimension")
 
     if split_dimension >= covariance_matrix.shape[0]:
-        raise ValueError("`split_dimension` must less then covariance matrix dimension")
+        raise ValueError("Expected `split_dimension` to be less then covariance matrix dimension")
 
     try:
         _, X_Y_logabsdet = numpy.linalg.slogdet(covariance_matrix)
@@ -139,9 +141,9 @@ def get_tridiagonal_colorizing_parameters(correlation_coefficient: float) -> flo
 
 
 class CovViaTridiagonal(Covariance):
-    def __init__(self, correlation_coefficient: numpy.array,
-                 X_orthogonal_matrix: numpy.array=None,
-                 Y_orthogonal_matrix: numpy.array=None):
+    def __init__(self, correlation_coefficient: numpy.ndarray,
+                 X_orthogonal_matrix: numpy.ndarray=None,
+                 Y_orthogonal_matrix: numpy.ndarray=None) -> None:
         """
         Create a Covariance object via a tridiagonal block form.
         This is a covariance matrix of jointly Gaussain random vectors
@@ -195,8 +197,8 @@ class CovViaTridiagonal(Covariance):
 
         self._allow_singular = False
 
-    def _apply_tridiagonal(self, x: numpy.array, y: numpy.array,
-                           on_diagonal: numpy.array, off_diagonal: numpy.array) -> numpy.array:
+    def _apply_tridiagonal(self, x: numpy.ndarray, y: numpy.ndarray,
+                           on_diagonal: numpy.ndarray, off_diagonal: numpy.ndarray) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
         Split the data and perform a tridiagonal transformation.
 
@@ -218,7 +220,7 @@ class CovViaTridiagonal(Covariance):
 
         Returns
         -------
-        (X_, Y_) : tuple of numpy.array
+        (X_, Y_) : tuple[numpy.ndarray]
             The transformed arrays of points.
         """
 
@@ -242,7 +244,7 @@ class CovViaTridiagonal(Covariance):
                 ], axis=-1), \
                 on_diagonal * y[...,:] + x[...,:self._Y_dimension] * off_diagonal,
 
-    def _whiten_colorize(self, x_y: numpy.array, whiten: bool) -> numpy.array:
+    def _whiten_colorize(self, x_y: numpy.ndarray, whiten: bool) -> numpy.ndarray:
         """
         Perform a whitening or colorizing transformation on data.
 
@@ -257,7 +259,7 @@ class CovViaTridiagonal(Covariance):
 
         Returns
         -------
-        x_y_ : numpy.array
+        x_y_ : numpy.ndarray
             The transformed array of points.
         """
 
@@ -292,7 +294,7 @@ class CovViaTridiagonal(Covariance):
 
         return numpy.concatenate([x, y], axis=-1)
 
-    def _whiten(self, x_y: numpy.array) -> numpy.array:
+    def _whiten(self, x_y: numpy.ndarray) -> numpy.ndarray:
         """
         Perform a whitening transformation on data.
 
@@ -305,13 +307,13 @@ class CovViaTridiagonal(Covariance):
 
         Returns
         -------
-        x_y_ : numpy.array
+        x_y_ : numpy.ndarray
             The transformed array of points.
         """
 
         return self._whiten_colorize(x_y, whiten=True)
    
-    def _colorize(self, x_y: numpy.array) -> numpy.array:
+    def _colorize(self, x_y: numpy.ndarray) -> numpy.ndarray:
         """
         Perform a colorizing transformation on data.
 
@@ -324,14 +326,14 @@ class CovViaTridiagonal(Covariance):
 
         Returns
         -------
-        x_y_ : numpy.array
+        x_y_ : numpy.ndarray
             The transformed array of points.
         """
 
         return self._whiten_colorize(x_y, whiten=False)    
 
     @property
-    def componentwise_mutual_information(self) -> numpy.array:
+    def componentwise_mutual_information(self) -> numpy.ndarray:
         """
         Componentwise mutual information.
 
@@ -355,7 +357,7 @@ class CovViaTridiagonal(Covariance):
         return numpy.sum(self.componentwise_mutual_information)
     
     @property
-    def _log_pdet(self):
+    def _log_pdet(self) -> float:
         """
         Log of the pseudo-determinant of the covariance matrix.
         Equals to mutual information.
@@ -363,7 +365,7 @@ class CovViaTridiagonal(Covariance):
         return self.mutual_information
 
     @property
-    def _rank(self):
+    def _rank(self) -> int:
         """
         Rank of the covariance matrix.
         This type of matrices is always full-rank.
@@ -371,13 +373,13 @@ class CovViaTridiagonal(Covariance):
         return self._X_dimension + self._Y_dimension
 
     @property
-    def _shape(self):
+    def _shape(self) -> tuple[int, int]:
         """
         Shape of the covariance array
         """
         return (self._rank, self._rank)
     
-    def _assemble_covariance_matrix(self) -> numpy.array:
+    def _assemble_covariance_matrix(self) -> numpy.ndarray:
         """
         Assemble the covariance matrix.
 
@@ -401,7 +403,7 @@ class CovViaTridiagonal(Covariance):
         ])
 
     @staticmethod
-    def _check_orthogonal_matrix(matrix: numpy.array):
+    def _check_orthogonal_matrix(matrix: numpy.ndarray) -> None:
         """
         Checks a matrix for orthogonality and square shape.
 
@@ -427,7 +429,7 @@ class CovViaTridiagonal(Covariance):
 
 
 class correlated_multivariate_normal(multivariate_normal_frozen):
-    def __init__(self, cov: CovViaTridiagonal, **kwargs):
+    def __init__(self, cov: CovViaTridiagonal, **kwargs) -> None:
         """
         Create a frozen multivariate normal distribution with known mutual information.
 
@@ -443,6 +445,16 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
         """
 
         super().__init__(cov=cov, **kwargs)
+
+    def rvs(self, *args, **kwargs) -> tuple[numpy.ndarray, numpy.ndarray]:
+        """
+        An adapter to a SciPy `multivariate_normal_frozen.rvs` to yield
+        a pair of arrays instead of one.
+        """
+
+        x_y = super().rvs(*args, **kwargs)
+        
+        return x_y[...,:self.cov_object._X_dimension], x_y[...,self.cov_object._X_dimension:]
 
     @property
     def mutual_information(self) -> float:
