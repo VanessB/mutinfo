@@ -1,9 +1,10 @@
 import numpy
 import math
 
+from .base import MutualInformationEstimator
 
 
-class SMI:
+class SMI(MutualInformationEstimator):
     """
     k-Sliced mutual information estimator.
 
@@ -15,7 +16,7 @@ class SMI:
     """
     
     def __init__(self, estimator: callable, projection_dim: int=1,
-                 n_projection_samples: int=128):
+                 n_projection_samples: int=128) -> None:
         """
         Create a k-Sliced Mutual Information estimator
 
@@ -40,7 +41,7 @@ class SMI:
         self.n_projection_samples = n_projection_samples
 
 
-    def generate_random_projection_matrix(self, dim: int):
+    def generate_random_projection_matrix(self, dim: int) -> None:
         """
         Sample a random projection matrix from the uniform distribution
         of orthogonal linear projectors from `dim` to `self.projection_dim`
@@ -62,7 +63,7 @@ class SMI:
         return Q
 
 
-    def __call__(self, x: numpy.array, y: numpy.array, std: bool=False) -> float:
+    def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float:
         """
         Estimate the value of k-sliced mutual information between two random vectors
         using samples `x` and `y`.
@@ -83,6 +84,8 @@ class SMI:
         mutual_information_std : float or None
             Standard deviation of the estimate, or None if `std=False`
         """
+
+        self._check_arguments(x, y)
 
         results = numpy.empty(self.n_projection_samples, dtype=numpy.float64)
         for projection_sample_index in range(self.n_projection_samples):

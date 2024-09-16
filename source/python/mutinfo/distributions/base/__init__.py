@@ -162,7 +162,7 @@ def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
     """
 
     # Use Gaussian CDF to acquire the uniform distribution.
-    return mapped.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), lambda x_y: (ndtr(x_y[0]), ndtr(x_y[1])), lambda x_y: (ndtri(x_y[0]), ndtri(x_y[1])))
+    return mapped.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), lambda x, y: (ndtr(x), ndtr(y)), lambda x, y: (ndtri(x), ndtri(y)))
 
 
 def CorrelatedStudent(mutual_information: float, X_dimension: int,

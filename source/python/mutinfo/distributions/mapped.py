@@ -42,4 +42,4 @@ class mapped_multi_rv_frozen(multi_rv_frozen):
         return self._dist.cdf(self.inverse_mapping(x))
 
     def rvs(self, *args, **kwargs):
-        return self.mapping(self._dist.rvs(*args, **kwargs))
+        return self.mapping(*self._dist.rvs(*args, **kwargs))
