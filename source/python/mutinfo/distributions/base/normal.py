@@ -93,6 +93,30 @@ def covariance_matrix_to_mutual_information(covariance_matrix: numpy.ndarray, sp
 
     return 0.5 * (X_logabsdet + Y_logabsdet - X_Y_logabsdet)
 
+def covariance_matrix_to_differential_entropy(covariance_matrix: numpy.ndarray) -> float:
+    """
+    Calculate the differential entropy of a multivariate Gaussian random vector
+    given the covariance matrix.
+
+    Parameters
+    ----------
+    covariance_matrix : np.array
+        Symmetric positive semidefinite matrix.
+
+    Returns
+    -------
+    differential_entropy : float
+        Corresponding differential entropy.
+    """
+
+    try:
+        dimension = covariance_matrix.shape[0]
+        _, logabsdet = numpy.linalg.slogdet(covariance_matrix)
+    except ValueError as slogdet_error:
+        raise ValueError("Covariance matrix must be symmetric and positive definite") from slogdet_error
+
+    return 0.5 * (dimension * math.log(2.0 * math.pi * math.e) + logabsdet)
+
 def get_tridiagonal_whitening_parameters(correlation_coefficient: float) -> float:
     """
     Calculate the parameters (on- and off-diagonal elements)

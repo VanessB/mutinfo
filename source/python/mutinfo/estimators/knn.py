@@ -3,6 +3,8 @@ import math
 from scipy.special import digamma, gamma
 from sklearn.neighbors import BallTree, KDTree
 
+from .base import MutualInformationEstimator
+
 
 _metric_tree_types = {
     "kd_tree": KDTree,
@@ -10,8 +12,8 @@ _metric_tree_types = {
 }
 
 
-class kNN_based:
-    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}):
+class kNN_based(MutualInformationEstimator):
+    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}) -> None:
         """
         Create a k-NN based mutual information estimator.
 
@@ -37,7 +39,7 @@ class kNN_based:
         self.tree_type = tree_type
         self.tree_kwargs = tree_kwargs
 
-    def make_tree(self, data: numpy.array):
+    def make_tree(self, data: numpy.ndarray):
         """
         Build a metric tree over the provided data.
 
@@ -65,7 +67,7 @@ class KSG(kNN_based):
            information". Phys. Rev. E 69, 2004.
     """
     
-    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}):
+    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}) -> None:
         """
         Create a Kraskov-Stogbauer-Grassberger k-NN based
         mutual information estimator.
@@ -90,7 +92,7 @@ class KSG(kNN_based):
         super().__init__(k_neighbors, tree_type, tree_kwargs)
 
 
-    def __call__(self, x: numpy.array, y: numpy.array, std: bool=False) -> float:
+    def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float:
         """
         Estimate the value of mutual information between two random vectors
         using samples `x` and `y`.
@@ -112,10 +114,9 @@ class KSG(kNN_based):
             Standard deviation of the estimate, or None if `std=False`
         """
 
+        self._check_arguments(x, y)
+        
         n_samples = x.shape[0]
-        if y.shape[0] != n_samples:
-            raise ValueError("The number of samples in `x` and `y` must be equal")
-
         k_neighbors = min(self.k_neighbors, n_samples-1)
 
         x = x.reshape(n_samples, -1)
@@ -144,5 +145,3 @@ class KSG(kNN_based):
             return mean, numpy.std(array) / math.sqrt(n_samples)
         else:
             return mean
-
-        
