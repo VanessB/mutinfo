@@ -1,9 +1,13 @@
 import numpy
+
 from scipy.special import ndtr, ndtri
 from scipy.stats import ortho_group
+from scipy.stats._distn_infrastructure import rv_frozen
+from scipy.stats._multivariate import multi_rv_frozen
 
 from . import gamma_exponential
 from . import normal
+from . import quantized
 from . import smoothed_uniform
 from . import student
 from .. import mapped
@@ -66,7 +70,7 @@ def _generate_cov_via_tridiagonal(mutual_information: float, X_dimension: int,
                                   randomize_interactions: bool=True) -> normal.CovViaTridiagonal:
     """
     Create a covariance matrix for a correlated multivariate normal distribution
-    with defined mutual information between subvectors.
+    given the value of the mutual information between the subvectors.
 
     Parameters
     ----------
@@ -86,7 +90,8 @@ def _generate_cov_via_tridiagonal(mutual_information: float, X_dimension: int,
     Returns
     -------
     random_variable : normal.CovViaTridiagonal
-        An instance of normal.CovViaTridiagonal with defined mutual information.
+        An instance of normal.CovViaTridiagonal
+        with the provided value of the mutual information.
     """
 
     min_dimension = min(X_dimension, Y_dimension)
@@ -106,7 +111,7 @@ def _generate_cov_via_tridiagonal(mutual_information: float, X_dimension: int,
 def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
     """
     Create a multivariate correlated normal distribution
-    with defined mutual information between subvectors.
+    given the value of the mutual information between the subvectors.
 
     Parameters
     ----------
@@ -126,8 +131,8 @@ def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
     Returns
     -------
     random_variable : normal.correlated_multivariate_normal
-        An instance of normal.correlated_multivariate_normal with
-        defined mutual information.
+        An instance of normal.correlated_multivariate_normal
+        with the provided value of the mutual information.
     """
 
     covariance = _generate_cov_via_tridiagonal(*args, **kwargs)
@@ -137,7 +142,7 @@ def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
 def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
     """
     Create a multivariate correlated uniform distribution
-    with defined mutual information between subvectors.
+    given the value of the mutual information between the subvectors.
 
     Parameters
     ----------
@@ -157,8 +162,9 @@ def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
     Returns
     -------
     random_variable : mapped.mapped_multi_rv_frozen
-        An instance of mapped.mapped_multi_rv_frozen with
-        defined mutual information and ndtr (normal to uniform) mapping.
+        An instance of mapped.mapped_multi_rv_frozen
+        with the provided value of the mutual information
+        and ndtr (normal to uniform) mapping.
     """
 
     # Use Gaussian CDF to acquire the uniform distribution.
@@ -171,7 +177,7 @@ def CorrelatedStudent(mutual_information: float, X_dimension: int,
                       randomize_interactions: bool=True) -> student.correlated_multivariate_student:
     """
     Create a multivariate correlated Student's distribution
-    with defined mutual information between subvectors.
+    given the value of the mutual information between the subvectors.
 
     Parameters
     ----------
@@ -193,8 +199,8 @@ def CorrelatedStudent(mutual_information: float, X_dimension: int,
     Returns
     -------
     random_variable : student.correlated_multivariate_student
-        An instance of student.correlated_multivariate_student with
-        defined mutual information and ndtr (normal to uniform) mapping.
+        An instance of student.correlated_multivariate_student
+        with the provided value of the mutual information.
     """
 
     correction_term = student.mutual_information_correction_term(
@@ -213,6 +219,63 @@ def CorrelatedStudent(mutual_information: float, X_dimension: int,
         randomize_interactions,
     )
     return student.correlated_multivariate_student(covariance, degrees_of_freedom)
+
+
+def GammaExponential(mutual_information: float,
+                     X_dimension: int, Y_dimension: int,
+                     randomize_shape_parameters: bool=True) -> gamma_exponential.gamma_exponential:
+    """
+    Create a multivariate gamma-exponential distribution
+    given the value of the mutual information between the subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimension : int
+        Dimension of the first and the second vector.
+    randomize_shape_parameters : bool, optional
+        Randomize shape parameters (mutual information stays fixed).
+        If not randomized, the shape parameters are equal
+        and non-negative.
+
+    Returns
+    -------
+    random_variable : gamma_exponential.gamma_exponential
+        An instance of gamma_exponential.gamma_exponential
+        with the provided value of the mutual information.
+    """
+
+    min_dimension = min(X_dimension, Y_dimension)
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_shape_parameters)
+    inverse_shape_parameter = gamma_exponential.mutual_information_to_inverse_shape_parameter(componentwise_mutual_information)
+    
+    return gamma_exponential.gamma_exponential(inverse_shape_parameter, X_dimension, Y_dimension)
+
+
+def UniformlyQuantized(mutual_information: float, base_rv: rv_frozen) -> quantized.quantized_rv:
+    """
+    Create a two-dimensional mixed-type distribution
+    given the value of the mutual information between the components.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    base_rv : scipy.stats._multivariate.multi_rv_frozen
+        Base distribution for the first component.
+
+    Returns
+    -------
+    random_variable : quantized.quantized_rv
+        An instance of quantized.quantized_rv
+        with the provided value of the mutual information.
+    """
+
+    probabilities = quantized.entropy_to_probabilities(mutual_information)
+    quantiles = numpy.cumsum(probabilities)[:-1]
+
+    return quantized.quantized_rv(base_rv, quantiles)
 
 
 def SmoothedUniform(mutual_information: float,
@@ -236,8 +299,8 @@ def SmoothedUniform(mutual_information: float,
     Returns
     -------
     random_variable : smoothed_uniform.smoothed_uniform
-        An instance of smoothed_uniform.smoothed_uniform with
-        defined mutual information.
+        An instance of smoothed_uniform.smoothed_uniform
+        with the provided value of the mutual information.
     """
 
     min_dimension = min(X_dimension, Y_dimension)
@@ -245,35 +308,3 @@ def SmoothedUniform(mutual_information: float,
     inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
     
     return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon, X_dimension, Y_dimension)
-
-
-def GammaExponential(mutual_information: float,
-                     X_dimension: int, Y_dimension: int,
-                     randomize_shape_parameters: bool=True) -> gamma_exponential.gamma_exponential:
-    """
-    Create a multivariate gamma-exponential distribution
-    with defined mutual information between subvectors.
-
-    Parameters
-    ----------
-    mutual_information : float
-        Mutual information (lies within [0.0; +inf)).
-    dimension : int
-        Dimension of the first and the second vector.
-    randomize_shape_parameters : bool, optional
-        Randomize shape parameters (mutual information stays fixed).
-        If not randomized, the shape parameters are equal
-        and non-negative.
-
-    Returns
-    -------
-    random_variable : gamma_exponential.gamma_exponential
-        An instance of gamma_exponential.gamma_exponential with
-        defined mutual information.
-    """
-
-    min_dimension = min(X_dimension, Y_dimension)
-    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_shape_parameters)
-    inverse_shape_parameter = gamma_exponential.mutual_information_to_inverse_shape_parameter(componentwise_mutual_information)
-    
-    return gamma_exponential.gamma_exponential(inverse_shape_parameter, X_dimension, Y_dimension)
