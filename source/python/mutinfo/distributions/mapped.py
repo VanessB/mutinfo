@@ -11,9 +11,9 @@ class mapped_multi_rv_frozen(multi_rv_frozen):
         Parameters
         ----------
         base_rv : scipy.stats._multivariate.multi_rv_frozen
-            The base random vector.
+            Base distribution.
         mapping : callable
-            The transformation mapping.
+            Transformation mapping.
         inverse_mapping : callable, optional
             Inverse of the transformation mapping.
         """

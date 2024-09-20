@@ -251,9 +251,9 @@ class CovViaTridiagonal(Covariance):
         for parameters in [on_diagonal, off_diagonal]:
             min_dimension = min(self._X_dimension, self._Y_dimension)
             if len(parameters.shape) != 1:
-                raise ValueError(f"`on_diagonal` and `off_diagonal` must be 1D arrays")
+                raise ValueError(f"Expected `on_diagonal` and `off_diagonal` to be 1D arrays")
             if parameters.shape[0] != min_dimension:
-                raise ValueError(f"`on_diagonal` and `off_diagonal` must be arrays of length {min_dimension}")
+                raise ValueError(f"Expected `on_diagonal` and `off_diagonal` to be arrays of length {min_dimension}")
 
         if self._X_dimension <= self._Y_dimension:
             return on_diagonal * x[...,:] + y[...,:self._X_dimension] * off_diagonal, \
@@ -453,6 +453,10 @@ class CovViaTridiagonal(Covariance):
 
 
 class correlated_multivariate_normal(multivariate_normal_frozen):
+    """
+    Frozen multivariate normal distribution with known mutual information.
+    """
+    
     def __init__(self, cov: CovViaTridiagonal, **kwargs) -> None:
         """
         Create a frozen multivariate normal distribution with known mutual information.
@@ -464,8 +468,6 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
         cov : CovViaTridiagonal
             Tridiagonal symmetric positive (semi)definite covariance matrix of the
             distribution.
-        **kwargs ; dict
-            Other 
         """
 
         super().__init__(cov=cov, **kwargs)
@@ -488,6 +490,6 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
         Returns
         -------
         mutual_information : float
-            Mutual information
+            Mutual information.
         """
         return self.cov_object.mutual_information
