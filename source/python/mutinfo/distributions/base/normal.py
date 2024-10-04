@@ -110,12 +110,12 @@ def covariance_matrix_to_differential_entropy(covariance_matrix: numpy.ndarray) 
     """
 
     try:
-        dimension = covariance_matrix.shape[0]
+        dimensionality = covariance_matrix.shape[0]
         _, logabsdet = numpy.linalg.slogdet(covariance_matrix)
     except ValueError as slogdet_error:
         raise ValueError("Covariance matrix must be symmetric and positive definite") from slogdet_error
 
-    return 0.5 * (dimension * math.log(2.0 * math.pi * math.e) + logabsdet)
+    return 0.5 * (dimensionality * math.log(2.0 * math.pi * math.e) + logabsdet)
 
 def get_tridiagonal_whitening_parameters(correlation_coefficient: float) -> float:
     """
@@ -192,10 +192,10 @@ class CovViaTridiagonal(Covariance):
         _check_correlation_value(correlation_coefficient)
         self._correlation_coefficient = correlation_coefficient
         
-        min_dimension = correlation_coefficient.shape[0]
-        self._X_dimension = min_dimension
-        self._Y_dimension = min_dimension
-        #self._max_dimension = max(self._X_dimension, self._Y_dimension)
+        min_dim = correlation_coefficient.shape[0]
+        self._X_dim = min_dim
+        self._Y_dim = min_dim
+        #self._maX_dim = max(self._X_dim, self._Y_dim)
 
         # Check matrices, avoid code repetition.
         for letter in ["X", "Y"]:
@@ -206,11 +206,11 @@ class CovViaTridiagonal(Covariance):
                 except ValueError as value_error:
                     raise ValueError(f"`{letter}_orthogonal_matrix` is not a square orthogonal matrix") from value_error
 
-                setattr(self, f"_{letter}_dimension", matrix.shape[0])
+                setattr(self, f"_{letter}_dim", matrix.shape[0])
 
-        if (self._X_dimension != min_dimension and self._Y_dimension != min_dimension) or \
-           (self._X_dimension < min_dimension or self._Y_dimension < min_dimension):
-            raise ValueError("Dimensions of vectors can not be deduced; try checking the shapes of `correlation_coefficient` and `X/Y_orthogonal_matrix`")
+        if (self._X_dim != min_dim and self._Y_dim != min_dim) or \
+           (self._X_dim < min_dim or self._Y_dim < min_dim):
+            raise ValueError("Dimensionality of vectors can not be deduced; try checking the shapes of `correlation_coefficient` and `X/Y_orthogonal_matrix`")
 
         # Explicitly define covariance matrix.
         self._covariance = self._assemble_covariance_matrix()
@@ -229,11 +229,11 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x : array_like
-            An array of points. The last dimension must correspond with the
+            An array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
         y : array_like
-            An array of points. The last dimension must correspond with the
+            An array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
         on_diagonal : array_like
@@ -249,24 +249,24 @@ class CovViaTridiagonal(Covariance):
         """
 
         for parameters in [on_diagonal, off_diagonal]:
-            min_dimension = min(self._X_dimension, self._Y_dimension)
+            min_dim = min(self._X_dim, self._Y_dim)
             if len(parameters.shape) != 1:
                 raise ValueError(f"Expected `on_diagonal` and `off_diagonal` to be 1D arrays")
-            if parameters.shape[0] != min_dimension:
-                raise ValueError(f"Expected `on_diagonal` and `off_diagonal` to be arrays of length {min_dimension}")
+            if parameters.shape[0] != min_dim:
+                raise ValueError(f"Expected `on_diagonal` and `off_diagonal` to be arrays of length {min_dim}")
 
-        if self._X_dimension <= self._Y_dimension:
-            return on_diagonal * x[...,:] + y[...,:self._X_dimension] * off_diagonal, \
+        if self._X_dim <= self._Y_dim:
+            return on_diagonal * x[...,:] + y[...,:self._X_dim] * off_diagonal, \
                 numpy.concatenate([        
-                    on_diagonal * y[...,:self._X_dimension] + x[...,:] * off_diagonal,
-                    y[...,self._X_dimension:]
+                    on_diagonal * y[...,:self._X_dim] + x[...,:] * off_diagonal,
+                    y[...,self._X_dim:]
                 ], axis=-1)
         else:
             return numpy.concatenate([
-                    on_diagonal * x[...,:self._Y_dimension] + y[...,:] * off_diagonal,
-                    x[...,self._Y_dimension:],
+                    on_diagonal * x[...,:self._Y_dim] + y[...,:] * off_diagonal,
+                    x[...,self._Y_dim:],
                 ], axis=-1), \
-                on_diagonal * y[...,:] + x[...,:self._Y_dimension] * off_diagonal,
+                on_diagonal * y[...,:] + x[...,:self._Y_dim] * off_diagonal,
 
     def _whiten_colorize(self, x_y: numpy.ndarray, whiten: bool) -> numpy.ndarray:
         """
@@ -275,7 +275,7 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x_y : array_like
-            An array of points. The last dimension must correspond with the
+            An array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
         whiten : bool
@@ -287,14 +287,14 @@ class CovViaTridiagonal(Covariance):
             The transformed array of points.
         """
 
-        if x_y.shape[-1] != self._X_dimension + self._Y_dimension:
+        if x_y.shape[-1] != self._X_dim + self._Y_dim:
             raise ValueError(
-                f"The last dimension of `x` ({x.shape[-1]}) does not correspond with the dimensionality of the space" +
-                f"({self._X_dimension} + {self._Y_dimension} = {self._X_dimension + self._Y_dimension})"
+                f"The last dimension of `x` ({x.shape[-1]}) does not correspond to the dimensionality of the space" +
+                f"({self._X_dim} + {self._Y_dim} = {self._X_dim + self._Y_dim})"
             )
 
-        x = x_y[...,:self._X_dimension]
-        y = x_y[...,self._X_dimension:]
+        x = x_y[...,:self._X_dim]
+        y = x_y[...,self._X_dim:]
 
         if whiten:
             if not self._X_orthogonal_matrix is None:
@@ -325,7 +325,7 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x_y : array_like
-            An array of points. The last dimension must correspond with the
+            An array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
 
@@ -344,7 +344,7 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x_y : array_like
-            An array of points. The last dimension must correspond with the
+            An array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
 
@@ -394,7 +394,7 @@ class CovViaTridiagonal(Covariance):
         Rank of the covariance matrix.
         This type of matrices is always full-rank.
         """
-        return self._X_dimension + self._Y_dimension
+        return self._X_dim + self._Y_dim
 
     @property
     def _shape(self) -> tuple[int, int]:
@@ -413,7 +413,7 @@ class CovViaTridiagonal(Covariance):
             Covariance matrix.
         """
 
-        correlation_block = numpy.zeros((self._X_dimension, self._Y_dimension))
+        correlation_block = numpy.zeros((self._X_dim, self._Y_dim))
         numpy.fill_diagonal(correlation_block, self._correlation_coefficient)
         
         if not self._X_orthogonal_matrix is None:
@@ -422,8 +422,8 @@ class CovViaTridiagonal(Covariance):
             correlation_block = correlation_block @ self._Y_orthogonal_matrix.T
 
         return numpy.block([
-            [numpy.eye(self._X_dimension),      correlation_block      ],
-            [     correlation_block.T,     numpy.eye(self._Y_dimension)]
+            [numpy.eye(self._X_dim), correlation_block     ],
+            [   correlation_block.T, numpy.eye(self._Y_dim)]
         ])
 
     @staticmethod
@@ -480,7 +480,7 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
 
         x_y = super().rvs(*args, **kwargs)
         
-        return x_y[...,:self.cov_object._X_dimension], x_y[...,self.cov_object._X_dimension:]
+        return x_y[...,:self.cov_object._X_dim], x_y[...,self.cov_object._X_dim:]
 
     @property
     def mutual_information(self) -> float:

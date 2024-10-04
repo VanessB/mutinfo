@@ -34,7 +34,7 @@ def _sample_from_simplex(dimension: int) -> numpy.ndarray:
     return result / numpy.sum(result)
 
 
-def _distribute_mutual_information(mutual_information: float, dimension: int,
+def _distribute_mutual_information(mutual_information: float, dimensionality: int,
                                    uniform: bool=True) -> numpy.ndarray:
     """
     Uniformly or randomly distribute mutual information along dimensions.
@@ -43,7 +43,7 @@ def _distribute_mutual_information(mutual_information: float, dimension: int,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    dimension : int
+    dimensionality : int
         Number of the dimensions.
     uniform : bool
         Distribute uniformly.
@@ -54,19 +54,19 @@ def _distribute_mutual_information(mutual_information: float, dimension: int,
         1D array of componentwise mutual information values.
     """
 
-    _check_dimension_value(dimension)
+    _check_dimension_value(dimensionality)
 
     if uniform:
-        componentwise_mutual_information = mutual_information * numpy.ones(dimension) / dimension
+        componentwise_mutual_information = mutual_information * numpy.ones(dimensionality) / dimensionality
     else:
-        componentwise_mutual_information = mutual_information * _sample_from_simplex(dimension)
+        componentwise_mutual_information = mutual_information * _sample_from_simplex(dimensionality)
 
     return componentwise_mutual_information
         
 
 
 def _generate_cov_via_tridiagonal(mutual_information: float,
-                                  X_dimension: int, Y_dimension: int,
+                                  X_dim: int, Y_dim: int,
                                   randomize_interactions: bool=True,
                                   shuffle_interactions: bool=True) -> normal.CovViaTridiagonal:
     """
@@ -77,9 +77,9 @@ def _generate_cov_via_tridiagonal(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
@@ -96,13 +96,13 @@ def _generate_cov_via_tridiagonal(mutual_information: float,
         with the provided value of the mutual information.
     """
 
-    min_dimension = min(X_dimension, Y_dimension)
-    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_interactions)
+    min_dim = min(X_dim, Y_dim)
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dim, not randomize_interactions)
     correlation_coefficient = normal.mutual_information_to_correlation(componentwise_mutual_information)
 
     if shuffle_interactions:
-        X_orthogonal_matrix = None if X_dimension == 1 else ortho_group.rvs(X_dimension)
-        Y_orthogonal_matrix = None if Y_dimension == 1 else ortho_group.rvs(Y_dimension)
+        X_orthogonal_matrix = None if X_dim == 1 else ortho_group.rvs(X_dim)
+        Y_orthogonal_matrix = None if Y_dim == 1 else ortho_group.rvs(Y_dim)
     else:
         X_orthogonal_matrix = None
         Y_orthogonal_matrix = None
@@ -119,9 +119,9 @@ def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
@@ -151,9 +151,9 @@ def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     randomize_correlation : bool, optional
         Randomize component-wise mutual information
@@ -176,7 +176,7 @@ def CorrelatedUniform(*args, **kwargs) -> mapped.mapped_multi_rv_frozen:
 
 
 def CorrelatedStudent(mutual_information: float,
-                      X_dimension: int, Y_dimension: int,
+                      X_dim: int, Y_dim: int,
                       degrees_of_freedom: int,
                       randomize_interactions: bool=True,
                       shuffle_interactions: bool=True) -> student.correlated_multivariate_student:
@@ -188,9 +188,9 @@ def CorrelatedStudent(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     degrees_of_freedom : int
         Number of degrees of freedom.
@@ -210,7 +210,7 @@ def CorrelatedStudent(mutual_information: float,
     """
 
     correction_term = student.mutual_information_correction_term(
-        X_dimension, Y_dimension, degrees_of_freedom
+        X_dim, Y_dim, degrees_of_freedom
     )
 
     correlation_mutual_information = mutual_information - correction_term
@@ -219,8 +219,8 @@ def CorrelatedStudent(mutual_information: float,
 
     covariance = _generate_cov_via_tridiagonal(
         correlation_mutual_information,
-        X_dimension,
-        Y_dimension,
+        X_dim,
+        Y_dim,
         randomize_interactions,
         shuffle_interactions,
     )
@@ -228,7 +228,7 @@ def CorrelatedStudent(mutual_information: float,
 
 
 def GammaExponential(mutual_information: float,
-                     X_dimension: int, Y_dimension: int,
+                     X_dim: int, Y_dim: int,
                      randomize_interactions: bool=True) -> gamma_exponential.gamma_exponential:
     """
     Create a multivariate gamma-exponential distribution
@@ -238,9 +238,9 @@ def GammaExponential(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
@@ -254,15 +254,15 @@ def GammaExponential(mutual_information: float,
         with the provided value of the mutual information.
     """
 
-    min_dimension = min(X_dimension, Y_dimension)
-    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_interactions)
+    min_dim = min(X_dim, Y_dim)
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dim, not randomize_interactions)
     inverse_shape_parameter = gamma_exponential.mutual_information_to_inverse_shape_parameter(componentwise_mutual_information)
     
-    return gamma_exponential.gamma_exponential(inverse_shape_parameter, X_dimension, Y_dimension)
+    return gamma_exponential.gamma_exponential(inverse_shape_parameter, X_dim, Y_dim)
 
 
 def UniformlyQuantized(mutual_information: float,
-                       X_dimension: int, Y_dimension: int,
+                       X_dim: int, Y_dim: int,
                        base_rv: rv_frozen,
                        randomize_interactions: bool=False) -> quantized.quantized_rv:
     """
@@ -273,9 +273,9 @@ def UniformlyQuantized(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     base_rv : scipy.stats._multivariate.multi_rv_frozen
         Base univariate distribution for the first component.
@@ -294,14 +294,14 @@ def UniformlyQuantized(mutual_information: float,
     if randomize_interactions:
         raise NotImplementedError("Interaction randomization is not implemented for `UniformlyQuantized` yet.")
 
-    probabilities = quantized.entropy_to_probabilities(mutual_information / min(X_dimension, Y_dimension))
+    probabilities = quantized.entropy_to_probabilities(mutual_information / min(X_dim, Y_dim))
     quantiles = numpy.cumsum(probabilities)[:-1]
 
-    return quantized.quantized_rv(base_rv, quantiles, X_dimension, Y_dimension)
+    return quantized.quantized_rv(base_rv, quantiles, X_dim, Y_dim)
 
 
 def SmoothedUniform(mutual_information: float,
-                    X_dimension: int, Y_dimension: int,
+                    X_dim: int, Y_dim: int,
                     randomize_interactions: bool=True) -> smoothed_uniform.smoothed_uniform:
     """
     Create a multivariate smoothed uniform distribution
@@ -311,9 +311,9 @@ def SmoothedUniform(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the first vector.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
@@ -327,8 +327,8 @@ def SmoothedUniform(mutual_information: float,
         with the provided value of the mutual information.
     """
 
-    min_dimension = min(X_dimension, Y_dimension)
-    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dimension, not randomize_interactions)
+    min_dim = min(X_dim, Y_dim)
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dim, not randomize_interactions)
     inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
     
-    return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon, X_dimension, Y_dimension)
+    return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon, X_dim, Y_dim)

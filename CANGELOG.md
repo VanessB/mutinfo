@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024.10.1
+
+- Added uniformly quantized random variable (a pair of $X$ and $f(X)$, where $f(X)$ is as close to a discrete uniform random variable as possible).
+
 ## 2024.05.1
 
 - A pair of image-generating diffeomorphisms added (TODO: test coverage).

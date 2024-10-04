@@ -140,7 +140,7 @@ def mutual_information_to_inverse_shape_parameter(mutual_information: float) -> 
 
 class gamma_exponential(multi_rv_frozen):
     def __init__(self, inverse_shape_parameter: numpy.ndarray,
-                 X_dimension: int=None, Y_dimension: int=None, *args, **kwargs) -> None:
+                 X_dim: int=None, Y_dim: int=None, *args, **kwargs) -> None:
         """
         Create a multivariate random vector with
         a gamma-exponential distribution.
@@ -149,18 +149,18 @@ class gamma_exponential(multi_rv_frozen):
         ----------
         inverse_shape_parameter : array_like
             1D array of inverse shape parameters of the distribution.
-        X_dimension : int, optional
+        X_dim : int, optional
             Dimensionality of the first vector.
-        Y_dimension : int, optional
+        Y_dim : int, optional
             Dimensionality of the second vector.
         """
 
         super().__init__(*args, **kwargs)
 
-        if not X_dimension is None:
-            _check_dimension_value(X_dimension, "X_dimension")
-        if not Y_dimension is None:
-            _check_dimension_value(Y_dimension, "Y_dimension")
+        if not X_dim is None:
+            _check_dimension_value(X_dim, "X_dim")
+        if not Y_dim is None:
+            _check_dimension_value(Y_dim, "Y_dim")
 
         if len(inverse_shape_parameter.shape) != 1:
             raise ValueError("`inverse_shape_parameter` must be a 1D array")
@@ -168,13 +168,13 @@ class gamma_exponential(multi_rv_frozen):
         _check_inverse_shape_parameter_value(inverse_shape_parameter)
         self._inverse_shape_parameter = inverse_shape_parameter
 
-        min_dimension = self._inverse_shape_parameter.shape[0]
-        self._X_dimension = min_dimension if X_dimension is None else X_dimension
-        self._Y_dimension = min_dimension if Y_dimension is None else Y_dimension
+        min_dim = self._inverse_shape_parameter.shape[0]
+        self._X_dim = min_dim if X_dim is None else X_dim
+        self._Y_dim = min_dim if Y_dim is None else Y_dim
 
-        if (self._X_dimension != min_dimension and self._Y_dimension != min_dimension) or \
-           (self._X_dimension < min_dimension or self._Y_dimension < min_dimension):
-            raise ValueError("Dimensions of vectors can not be deduced; try checking the shape of `inverse_shape_parameter` and the values of `X/Y_dimension`")
+        if (self._X_dim != min_dim and self._Y_dim != min_dim) or \
+           (self._X_dim < min_dim or self._Y_dim < min_dim):
+            raise ValueError("Dimensions of vectors can not be deduced; try checking the shape of `inverse_shape_parameter` and the values of `X/Y_dim`")
 
     def rvs(self, size: int=1) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
@@ -192,17 +192,17 @@ class gamma_exponential(multi_rv_frozen):
         """
 
         x = numpy.stack([numpy.ones(size) if k <= _EPS else gamma.rvs(a=1.0/k, loc=1.0e-12, scale=k, size=(size,)) for k in self._inverse_shape_parameter], axis=1)
-        y = expon.rvs(size=(size, self._Y_dimension))
+        y = expon.rvs(size=(size, self._Y_dim))
 
-        min_dimension = min(self._X_dimension, self._Y_dimension)
+        min_dim = min(self._X_dim, self._Y_dim)
 
         # Numerically stable, mutual information is not alternated.
         # TODO: make new random variable or rename this to account for log
         x = numpy.log(x)
         y = numpy.log(y)
-        y[:,-min_dimension:] = y[:,-min_dimension:] - x[:,-min_dimension:]
+        y[:,-min_dim:] = y[:,-min_dim:] - x[:,-min_dim:]
         
-        #y[:,-min_dimension:] = y[:,-min_dimension:] / x[:,-min_dimension:]
+        #y[:,-min_dim:] = y[:,-min_dim:] / x[:,-min_dim:]
         
         return x, y
 
