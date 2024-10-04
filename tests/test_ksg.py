@@ -1,6 +1,6 @@
 import numpy
 
-from mutinfo.distributions.base import CorrelatedNormal, CorrelatedUniform, CorrelatedStudent, SmoothedUniform
+from mutinfo.distributions.base import CorrelatedNormal, CorrelatedUniform, CorrelatedStudent, SmoothedUniform, UniformlyQuantized
 from mutinfo.estimators.knn import KSG
 
 from . import estimator_tester
@@ -73,4 +73,24 @@ def test_ksg_smoothed_uniform():
         n_samples=10000,
         atol=0.1,
         rtol=0.05
+    )
+
+def test_ksg_uniformly_quantized():
+    """
+    Test the KSG estimator on uniformly quantized distributions.
+    """
+
+    from scipy.stats import norm, uniform
+
+    for distribution in [norm, uniform]:
+        estimator_tester.run_tests(
+            KSG,
+            lambda mutual_information, X_dimension, Y_dimension: UniformlyQuantized(mutual_information, X_dimension, Y_dimension, distribution(loc=0.0, scale=1.0)),
+            range(1, 3),
+            range(1, 3),
+            numpy.linspace(0.0, 1.0, 5),
+            f"Bad KSG estimates for uniformly quantized distribution ({distribution})",
+            n_samples=10000,
+            atol=0.05,
+            rtol=0.05
     )

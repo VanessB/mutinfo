@@ -71,7 +71,7 @@ def covariance_matrix_to_mutual_information(covariance_matrix: numpy.ndarray, sp
     covariance_matrix : np.array
         Symmetric positive semidefinite matrix.
     split_dimension : int
-        Specifies the dimension of the first vector.
+        Specifies the dimensionality of the first vector.
 
     Returns
     -------
