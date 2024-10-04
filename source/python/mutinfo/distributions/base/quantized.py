@@ -47,7 +47,7 @@ class quantized_rv(multi_rv_frozen):
     """
     
     def __init__(self, base_rv: rv_frozen, quantiles: list,
-                 X_dimension: int=1, Y_dimension: int=None,
+                 X_dim: int=1, Y_dim: int=None,
                  *args, **kwargs) -> None:
         """
         Create a frozen quantized distribution with known mutual information.
@@ -58,19 +58,19 @@ class quantized_rv(multi_rv_frozen):
             Base distribution.
         quantiles : array_like
             Quantiles to be used to assign labels.
-        X_dimension : int, optional
+        X_dim : int, optional
             Dimensionality of the first vector.
-        Y_dimension : int, optional
+        Y_dim : int, optional
             Dimensionality of the second vector.
         """
         
         super().__init__(*args, **kwargs)
 
-        _check_dimension_value(X_dimension, "X_dimension")
-        if not Y_dimension is None:
-            _check_dimension_value(Y_dimension, "Y_dimension")
+        _check_dimension_value(X_dim, "X_dim")
+        if not Y_dim is None:
+            _check_dimension_value(Y_dim, "Y_dim")
         else:
-            Y_dimension = X_dimension
+            Y_dim = X_dim
 
         try:
             quantiles = numpy.asarray(quantiles)
@@ -82,8 +82,8 @@ class quantized_rv(multi_rv_frozen):
             
         _check_quantile_value(quantiles, "quantiles")
 
-        self._X_dimension = X_dimension
-        self._Y_dimension = Y_dimension
+        self._X_dim = X_dim
+        self._Y_dim = Y_dim
 
         self._quantiles = numpy.sort(quantiles)
         self._dist = base_rv        
@@ -103,14 +103,14 @@ class quantized_rv(multi_rv_frozen):
             Random sampling.
         """
 
-        min_dimension = min(self._X_dimension, self._Y_dimension)
+        min_dim = min(self._X_dim, self._Y_dim)
         
-        x = self._dist.rvs(size=(size, self._X_dimension), *args, **kwargs)
+        x = self._dist.rvs(size=(size, self._X_dim), *args, **kwargs)
 
-        y = numpy.empty((size, self._Y_dimension), dtype=numpy.int64)
-        y[:,:min_dimension] = numpy.sum(self._dist.cdf(x[:,:min_dimension])[...,None] > self._quantiles[None,None,:], axis=-1)
-        if min_dimension < self._Y_dimension:
-            y[:,min_dimension:self._Y_dimension] = numpy.random.choice(self._quantiles.shape[0] + 1, (size, self._Y_dimension - min_dimension), p=self.label_probabilities)
+        y = numpy.empty((size, self._Y_dim), dtype=numpy.int64)
+        y[:,:min_dim] = numpy.sum(self._dist.cdf(x[:,:min_dim])[...,None] > self._quantiles[None,None,:], axis=-1)
+        if min_dim < self._Y_dim:
+            y[:,min_dim:self._Y_dim] = numpy.random.choice(self._quantiles.shape[0] + 1, (size, self._Y_dim - min_dim), p=self.label_probabilities)
         
         return x, y
 

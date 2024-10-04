@@ -8,13 +8,13 @@ from .normal import CovViaTridiagonal, correlated_multivariate_normal
 from ...utils.checks import _check_dimension_value
 
 
-def entropy_correction_term(dimension: int) -> float:
+def entropy_correction_term(dimensionality: int) -> float:
     """
     Calculate entropy correction term for Student's distribution.
 
     Parameters
     ----------
-    dimension : int
+    dimensionality : int
         Dimensionality parameter.
 
     Returns
@@ -23,22 +23,22 @@ def entropy_correction_term(dimension: int) -> float:
         Entropy correction term.
     """
 
-    _check_dimension_value(dimension)
+    _check_dimension_value(dimensionality)
 
-    half_dimension = 0.5 * dimension
+    half_dimension = 0.5 * dimensionality
     return loggamma(half_dimension) - half_dimension * digamma(half_dimension)
 
 
-def mutual_information_correction_term(X_dimension: int, Y_dimension: int,
+def mutual_information_correction_term(X_dim: int, Y_dim: int,
                                        degrees_of_freedom: int) -> float:
     """
     Calculate entropy correction term for Student's distribution.
     
     Parameters
     ----------
-    X_dimension : int
+    X_dim : int
         Dimensionality of the first vector.
-    Y_dimension : int
+    Y_dim : int
         Dimensionality of the second vector.
     degrees_of_freedom : int
         Number of dergees of freedom.
@@ -49,13 +49,13 @@ def mutual_information_correction_term(X_dimension: int, Y_dimension: int,
         Entropy correction term.
     """
 
-    _check_dimension_value(X_dimension, "X_dimension")
-    _check_dimension_value(Y_dimension, "Y_dimension")
+    _check_dimension_value(X_dim, "X_dim")
+    _check_dimension_value(Y_dim, "Y_dim")
 
     return entropy_correction_term(degrees_of_freedom) + \
-           entropy_correction_term(degrees_of_freedom + X_dimension + Y_dimension) - \
-           entropy_correction_term(degrees_of_freedom + X_dimension) - \
-           entropy_correction_term(degrees_of_freedom + Y_dimension)
+           entropy_correction_term(degrees_of_freedom + X_dim + Y_dim) - \
+           entropy_correction_term(degrees_of_freedom + X_dim) - \
+           entropy_correction_term(degrees_of_freedom + Y_dim)
 
 
 class correlated_multivariate_student(multi_rv_frozen):
@@ -106,5 +106,5 @@ class correlated_multivariate_student(multi_rv_frozen):
         """
         return self.normal.mutual_information + \
                mutual_information_correction_term(
-                   self.normal.cov_object._X_dimension, self.normal.cov_object._Y_dimension, self.degrees_of_freedom
+                   self.normal.cov_object._X_dim, self.normal.cov_object._Y_dim, self.degrees_of_freedom
                )

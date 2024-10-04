@@ -123,9 +123,6 @@ class KSG(kNN_based):
         y = y.reshape(n_samples, -1)
         x_y = numpy.concatenate([x, y], axis=-1)
 
-        X_dimension = x.shape[1]
-        Y_dimension = y.shape[1]
-
         # Use metric trees for fast nearest neighbors search.
         x_tree = self.make_tree(x)
         y_tree = self.make_tree(y)

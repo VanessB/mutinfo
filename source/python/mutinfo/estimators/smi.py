@@ -25,7 +25,7 @@ class SMI(MutualInformationEstimator):
         estimator : callable
             Base estimator used to estimate MI between projections.
         projection_dim : int, optional
-            Dimension of the projection subspace.
+            Dimensionality of the projection subspace.
         n_projection_samples : int, optional
             Number of Monte Carlo samples to estimate SMI.
 

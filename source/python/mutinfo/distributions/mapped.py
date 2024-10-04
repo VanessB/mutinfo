@@ -27,7 +27,7 @@ class mapped_multi_rv_frozen(multi_rv_frozen):
     def _check_inverse_mapping(function):
         def wrapper(self, *args, **kwargs):
             if self.inverse_mapping is None:
-                raise NotImplementedError("`inverse_mapping` is required")
+                raise NotImplementedError("Expected `inverse_mapping` to be defined")
             else:
                 return function(self, *args, **kwargs)
 
