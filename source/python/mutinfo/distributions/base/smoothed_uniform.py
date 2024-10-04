@@ -90,9 +90,9 @@ class smoothed_uniform(multi_rv_frozen):
         inverse_smoothing_epsilon : array_like
             1D array of inverse smoothing epsilon parameters of the distribution.
         X_dimension : int, optional
-            Dimension of the first vector.
+            Dimensionality of the first vector.
         Y_dimension : int, optional
-            Dimension of the second vector.
+            Dimensionality of the second vector.
         """
 
         super().__init__(*args, **kwargs)

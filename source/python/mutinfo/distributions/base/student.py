@@ -37,9 +37,9 @@ def mutual_information_correction_term(X_dimension: int, Y_dimension: int,
     Parameters
     ----------
     X_dimension : int
-        Dimension of the first vector.
+        Dimensionality of the first vector.
     Y_dimension : int
-        Dimension of the second vector.
+        Dimensionality of the second vector.
     degrees_of_freedom : int
         Number of dergees of freedom.
 

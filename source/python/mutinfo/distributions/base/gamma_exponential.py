@@ -150,9 +150,9 @@ class gamma_exponential(multi_rv_frozen):
         inverse_shape_parameter : array_like
             1D array of inverse shape parameters of the distribution.
         X_dimension : int, optional
-            Dimension of the first vector.
+            Dimensionality of the first vector.
         Y_dimension : int, optional
-            Dimension of the second vector.
+            Dimensionality of the second vector.
         """
 
         super().__init__(*args, **kwargs)

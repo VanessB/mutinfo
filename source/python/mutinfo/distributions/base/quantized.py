@@ -6,7 +6,7 @@ from scipy.special import xlogy
 from scipy.stats._distn_infrastructure import rv_frozen
 from scipy.stats._multivariate import multi_rv_frozen
 
-from ...utils.checks import _check_quantile_value, _check_mutual_information_value
+from ...utils.checks import _check_dimension_value, _check_mutual_information_value, _check_quantile_value
 
 
 def entropy_to_probabilities(entropy: float) -> numpy.ndarray:
@@ -46,8 +46,9 @@ class quantized_rv(multi_rv_frozen):
     Frozen quantized distribution with known mutual information.
     """
     
-    def __init__(self, base_rv: rv_frozen, 
-                 quantiles: list, *args, **kwargs) -> None:
+    def __init__(self, base_rv: rv_frozen, quantiles: list,
+                 X_dimension: int=1, Y_dimension: int=None,
+                 *args, **kwargs) -> None:
         """
         Create a frozen quantized distribution with known mutual information.
 
@@ -57,9 +58,19 @@ class quantized_rv(multi_rv_frozen):
             Base distribution.
         quantiles : array_like
             Quantiles to be used to assign labels.
+        X_dimension : int, optional
+            Dimensionality of the first vector.
+        Y_dimension : int, optional
+            Dimensionality of the second vector.
         """
         
         super().__init__(*args, **kwargs)
+
+        _check_dimension_value(X_dimension, "X_dimension")
+        if not Y_dimension is None:
+            _check_dimension_value(Y_dimension, "Y_dimension")
+        else:
+            Y_dimension = X_dimension
 
         try:
             quantiles = numpy.asarray(quantiles)
@@ -71,17 +82,40 @@ class quantized_rv(multi_rv_frozen):
             
         _check_quantile_value(quantiles, "quantiles")
 
+        self._X_dimension = X_dimension
+        self._Y_dimension = Y_dimension
+
         self._quantiles = numpy.sort(quantiles)
         self._dist = base_rv        
 
-    def rvs(self, *args, **kwargs):
-        samples = self._dist.rvs(*args, **kwargs)
-        labels  = numpy.sum(self._dist.cdf(samples)[:,None] > self._quantiles[None,:], axis=-1)
+    def rvs(self, size: int=1, *args, **kwargs):
+        """
+        Random variate.
+
+        Parameters
+        ----------
+        size : int, optional
+            Number of samples.
+
+        Returns
+        -------
+        x_y : numpy.ndarray
+            Random sampling.
+        """
+
+        min_dimension = min(self._X_dimension, self._Y_dimension)
         
-        return (samples, labels)
+        x = self._dist.rvs(size=(size, self._X_dimension), *args, **kwargs)
+
+        y = numpy.empty((size, self._Y_dimension), dtype=numpy.int64)
+        y[:,:min_dimension] = numpy.sum(self._dist.cdf(x[:,:min_dimension])[...,None] > self._quantiles[None,None,:], axis=-1)
+        if min_dimension < self._Y_dimension:
+            y[:,min_dimension:self._Y_dimension] = numpy.random.choice(self._quantiles.shape[0] + 1, (size, self._Y_dimension - min_dimension), p=self.label_probabilities)
+        
+        return x, y
 
     @property
-    def labels_probabilities(self) -> numpy.ndarray:
+    def label_probabilities(self) -> numpy.ndarray:
         """
         Probabilities of the labels.
 
@@ -106,6 +140,6 @@ class quantized_rv(multi_rv_frozen):
             Mutual information.
         """
 
-        labels_probabilities = self.labels_probabilities
+        label_probabilities = self.label_probabilities
         
-        return -numpy.sum(xlogy(labels_probabilities, labels_probabilities))
+        return -numpy.sum(xlogy(label_probabilities, label_probabilities))
