@@ -80,7 +80,7 @@ def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float) -
 
 class smoothed_uniform(multi_rv_frozen):
     def __init__(self, inverse_smoothing_epsilon: numpy.ndarray,
-                 X_dim: int=None, Y_dim: int=None, *args, **kwargs) -> None:
+                 *args, **kwargs) -> None:
         """
         Create a multivariate random vector with
         a smoothed uniform distribution.
@@ -89,32 +89,15 @@ class smoothed_uniform(multi_rv_frozen):
         ----------
         inverse_smoothing_epsilon : array_like
             1D array of inverse smoothing epsilon parameters of the distribution.
-        X_dim : int, optional
-            Dimensionality of the first vector.
-        Y_dim : int, optional
-            Dimensionality of the second vector.
         """
 
         super().__init__(*args, **kwargs)
-
-        if not X_dim is None:
-            _check_dimension_value(X_dim, "X_dim")
-        if not Y_dim is None:
-            _check_dimension_value(Y_dim, "Y_dim")
 
         if len(inverse_smoothing_epsilon.shape) != 1:
             raise ValueError("`inverse_smoothing_epsilon` must be a 1D array")
 
         _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon)
         self._inverse_smoothing_epsilon = inverse_smoothing_epsilon
-
-        min_dim = self._inverse_smoothing_epsilon.shape[0]
-        self._X_dim = min_dim if X_dim is None else X_dim
-        self._Y_dim = min_dim if Y_dim is None else Y_dim
-
-        if (self._X_dim != min_dim and self._Y_dim != min_dim) or \
-           (self._X_dim < min_dim or self._Y_dim < min_dim):
-            raise ValueError("Dimensionality of vectors can not be deduced; try checking the shape of `inverse_smoothing_epsilon` and the values of `X/Y_dim`")
 
         self._dist = uniform()
 
@@ -129,18 +112,18 @@ class smoothed_uniform(multi_rv_frozen):
 
         Returns
         -------
-        x_y : numpy.ndarray
+        x, y : tuple[numpy.ndarray, numpy.ndarray]
             Random sampling.
         """
-        
-        x = self._dist.rvs(size=(size, self._X_dim))
-        y = self._dist.rvs(size=(size, self._Y_dim))
 
-        min_dim = min(self._X_dim, self._Y_dim)
+        dimensionality = self._inverse_smoothing_epsilon.shape[0]
+        x = self._dist.rvs(size=(size, dimensionality))
+        y = self._dist.rvs(size=(size, dimensionality))
 
         # Rescale for large smoothing epsilons (does not affect mutual information).
-        y[...,-min_dim:] = x[...,:min_dim]  * numpy.minimum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:] + \
-                                 y[...,-min_dim:] / numpy.maximum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:]
+        y = x * numpy.minimum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:] + \
+            y / numpy.maximum(1.0, 0.5 * self._inverse_smoothing_epsilon)[None,:]
+        
         return x, y
 
     @property

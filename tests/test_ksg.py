@@ -14,10 +14,10 @@ def test_ksg_normal():
     estimator_tester.run_tests(
         KSG,
         CorrelatedNormal,
-        range(1, 3),
-        range(1, 3),
         numpy.linspace(0.0, 1.0, 5),
         "Bad KSG estimates for normal distribution",
+        range(1, 3),
+        range(1, 3),
         n_samples=10000,
         atol=0.05,
         rtol=0.05
@@ -31,10 +31,10 @@ def test_ksg_uniform():
     estimator_tester.run_tests(
         KSG,
         CorrelatedUniform,
-        range(1, 3),
-        range(1, 3),
         numpy.linspace(0.0, 1.0, 5),
         "Bad KSG estimates for uniform distribution",
+        range(1, 3),
+        range(1, 3),
         n_samples=10000,
         atol=0.05,
         rtol=0.05
@@ -49,10 +49,10 @@ def test_ksg_student():
         estimator_tester.run_tests(
             KSG,
             lambda mutual_information, X_dimension, Y_dimension : CorrelatedStudent(mutual_information, X_dimension, Y_dimension, degrees_of_freedom),
-            range(1, 3),
-            range(1, 3),
             numpy.linspace(0.5, 1.0, 5),
             "Bad KSG estimates for Student's distribution",
+            range(1, 3),
+            range(1, 3),
             n_samples=10000,
             atol=0.1,
             rtol=0.05
@@ -65,11 +65,10 @@ def test_ksg_smoothed_uniform():
 
     estimator_tester.run_tests(
         KSG,
-        SmoothedUniform,
-        range(1, 3),
-        range(1, 3),
+        lambda mutual_information, X_dimension, Y_dimension: SmoothedUniform(mutual_information, X_dimension),
         numpy.linspace(0.0, 1.0, 5),
         "Bad KSG estimates for smoothed uniform distribution",
+        range(1, 3),
         n_samples=10000,
         atol=0.1,
         rtol=0.05
@@ -85,11 +84,10 @@ def test_ksg_uniformly_quantized():
     for distribution in [norm, uniform]:
         estimator_tester.run_tests(
             KSG,
-            lambda mutual_information, X_dimension, Y_dimension: UniformlyQuantized(mutual_information, X_dimension, Y_dimension, distribution(loc=0.0, scale=1.0)),
-            range(1, 3),
-            range(1, 3),
+            lambda mutual_information, X_dimension, Y_dimension: UniformlyQuantized(mutual_information, X_dimension, distribution(loc=0.0, scale=1.0)),
             numpy.linspace(0.0, 1.0, 5),
             f"Bad KSG estimates for uniformly quantized distribution ({distribution})",
+            range(1, 3),
             n_samples=10000,
             atol=0.05,
             rtol=0.05

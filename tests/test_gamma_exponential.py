@@ -1,5 +1,4 @@
 import numpy
-from scipy.stats import ortho_group
 
 from mutinfo.distributions.base import gamma_exponential
 
