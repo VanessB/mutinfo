@@ -79,18 +79,18 @@ class correlated_multivariate_student(multi_rv_frozen):
         self.normal = correlated_multivariate_normal(cov)
         self.chi2 = chi2(df=df, scale=1.0/df)
 
-    def rvs(self, size: int) -> numpy.ndarray:
+    def rvs(self, size: int=1) -> numpy.ndarray:
         """
         Random variate.
 
         Parameters
         ----------
-        size : int
+        size : int, optional
             Number of samples.
 
         Returns
         -------
-        x_y : numpy.ndarray
+        x, y : tuple[numpy.ndarray, numpy.ndarray]
             Random sampling.
         """
         
@@ -103,6 +103,11 @@ class correlated_multivariate_student(multi_rv_frozen):
     def mutual_information(self) -> float:
         """
         Mutual information.
+
+        Returns
+        -------
+        mutual_information : float
+            Mutual information
         """
         return self.normal.mutual_information + \
                mutual_information_correction_term(

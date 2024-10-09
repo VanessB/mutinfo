@@ -195,7 +195,6 @@ class CovViaTridiagonal(Covariance):
         min_dim = correlation_coefficient.shape[0]
         self._X_dim = min_dim
         self._Y_dim = min_dim
-        #self._maX_dim = max(self._X_dim, self._Y_dim)
 
         # Check matrices, avoid code repetition.
         for letter in ["X", "Y"]:
