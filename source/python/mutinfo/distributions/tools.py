@@ -1,22 +1,22 @@
 import numpy
 from scipy.stats._multivariate import multi_rv_frozen
 
+from collections.abc import Callable
+
 
 class stacked_multi_rv_frozen(multi_rv_frozen):
     def __init__(self, base_rv: multi_rv_frozen, dimensionality: int,
                  *args, **kwargs) -> None:
         """
-        Create a multivariate random vector with a pushforward distribution
-        of a random vactor `multi_rv_frozen` via a mapping `mapping`.
+        Create a multivariate random vector with i.i.d. components
+        of the provided distribution.
 
         Parameters
         ----------
         base_rv : scipy.stats._multivariate.multi_rv_frozen
             Base distribution.
-        mapping : callable
-            Transformation mapping.
-        inverse_mapping : callable, optional
-            Inverse of the transformation mapping.
+        dimensionality : int
+            Desired dimensionality.
         """
 
         super().__init__(*args, **kwargs)
@@ -35,7 +35,7 @@ class stacked_multi_rv_frozen(multi_rv_frozen):
 
         Returns
         -------
-        x, y : tuple[numpy.ndarray, numpy.ndarray]
+        x, y : numpy.ndarray
             Random sampling.
         """
         
@@ -48,7 +48,7 @@ class stacked_multi_rv_frozen(multi_rv_frozen):
 
         Returns
         -------
-        componentwise_mutual_information : np.array
+        componentwise_mutual_information : numpy.ndarray
             Componentwise mutual information.
         """
         return numpy.full(self.dimensionality, self._dist.mutual_information)
@@ -67,8 +67,10 @@ class stacked_multi_rv_frozen(multi_rv_frozen):
         
 
 class mapped_multi_rv_frozen(multi_rv_frozen):
-    def __init__(self, base_rv: multi_rv_frozen, mapping: callable,
-                 inverse_mapping: callable=None, *args, **kwargs) -> None:
+    def __init__(self, base_rv: multi_rv_frozen,
+                 mapping: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray],
+                 inverse_mapping: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]=None,
+                 *args, **kwargs) -> None:
         """
         Create a multivariate random vector with a pushforward distribution
         of a random vactor `multi_rv_frozen` via a mapping `mapping`.
@@ -77,9 +79,9 @@ class mapped_multi_rv_frozen(multi_rv_frozen):
         ----------
         base_rv : scipy.stats._multivariate.multi_rv_frozen
             Base distribution.
-        mapping : callable
+        mapping : Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]
             Transformation mapping.
-        inverse_mapping : callable, optional
+        inverse_mapping : Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray], optional
             Inverse of the transformation mapping.
         """
 

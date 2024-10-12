@@ -6,7 +6,8 @@ from scipy.stats._multivariate import multi_rv_frozen
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float, name: str="inverse_smoothing_epsilon") -> None:
+def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float | numpy.ndarray,
+                                           name: str="inverse_smoothing_epsilon") -> None:
     """
     Checks an inverse smoothing epsilon parameter to be within [0.0; +inf)
 
@@ -20,7 +21,7 @@ def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float, nam
     if numpy.any(inverse_smoothing_epsilon < 0.0):
         raise ValueError(f"Expected `{inverse_smoothing_epsilon}` be non-negative")
 
-def inverse_smoothing_epsilon_to_mutual_information(inverse_smoothing_epsilon: float) -> float:
+def inverse_smoothing_epsilon_to_mutual_information(inverse_smoothing_epsilon: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the mutual information between two random variables with a smoothed
     uniform joint distribution defined by the inverse smoothing epsilon.
@@ -49,7 +50,7 @@ def inverse_smoothing_epsilon_to_mutual_information(inverse_smoothing_epsilon: f
 
     return mutual_information.item() if is_float else mutual_information 
 
-def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float) -> float:
+def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the inverse smoothing epsilon given the mutual information
     between two random variables with a smoothed uniform joint distribution.
@@ -112,7 +113,7 @@ class smoothed_uniform(multi_rv_frozen):
 
         Returns
         -------
-        x, y : tuple[numpy.ndarray, numpy.ndarray]
+        x, y : numpy.ndarray
             Random sampling.
         """
 
@@ -133,7 +134,7 @@ class smoothed_uniform(multi_rv_frozen):
 
         Returns
         -------
-        componentwise_mutual_information : np.array
+        componentwise_mutual_information : numpy.ndarray
             Componentwise mutual information
         """
         return inverse_smoothing_epsilon_to_mutual_information(self._inverse_smoothing_epsilon)
@@ -146,6 +147,6 @@ class smoothed_uniform(multi_rv_frozen):
         Returns
         -------
         mutual_information : float
-            Mutual information
+            Mutual information.
         """
         return numpy.sum(self.componentwise_mutual_information)

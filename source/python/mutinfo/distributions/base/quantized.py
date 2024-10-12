@@ -22,7 +22,7 @@ def entropy_to_probabilities(entropy: float) -> numpy.ndarray:
     Returns
     -------
     probabilities : numpy.ndarray
-        Probability vector
+        Probability vector.
     """
 
     # Shannon entropy is non-negative.
@@ -58,7 +58,7 @@ class quantized_rv(multi_rv_frozen):
     Frozen quantized distribution with known mutual information.
     """
     
-    def __init__(self, base_rv: rv_frozen, quantiles: list,
+    def __init__(self, base_rv: rv_frozen, quantiles: numpy.ndarray,
                  *args, **kwargs) -> None:
         """
         Create a frozen quantized distribution with known mutual information.
@@ -93,11 +93,11 @@ class quantized_rv(multi_rv_frozen):
         Parameters
         ----------
         arg1, arg2, arg3,... : array_like
-            The shape parameter(s) for the distribution
+            The shape parameter(s) for the distribution.
 
         Returns
         -------
-        x, y : tuple[numpy.ndarray, numpy.ndarray]
+        x, y : numpy.ndarray
             Random sampling.
         """
         
@@ -114,7 +114,7 @@ class quantized_rv(multi_rv_frozen):
         Returns
         -------
         labels_probabilities : numpy.ndarray
-            Array of probabilities of the labels
+            Array of probabilities of the labels.
         """
         
         padded_quantiles = numpy.pad(self._quantiles, pad_width=(1, 1), constant_values=(0.0, 1.0))
@@ -129,8 +129,9 @@ class quantized_rv(multi_rv_frozen):
         Returns
         -------
         mutual_information : float
-            Mutual information
+            Mutual information.
         """
+        
         label_probabilities = self.label_probabilities
         
         return -numpy.sum(xlogy(label_probabilities, label_probabilities))

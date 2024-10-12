@@ -2,7 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def plot_estimated_MI(MI, estimated_MI, title):
+def plot_estimated_MI(MI, estimated_MI, title, std_multiplier: float=3.0):
     """
     Plot estimated mutual information values.
     """
@@ -27,7 +27,7 @@ def plot_estimated_MI(MI, estimated_MI, title):
 
     ax_normal.plot(MI, MI, label="$I(X,Y)$", color='red')
     ax_normal.plot(MI, estimated_MI_mean, label="$\\hat I(X,Y)$")        
-    ax_normal.fill_between(MI, estimated_MI_mean + estimated_MI_std, estimated_MI_mean - estimated_MI_std, alpha=0.2)
+    ax_normal.fill_between(MI, estimated_MI_mean + std_multiplier*estimated_MI_std, estimated_MI_mean - std_multiplier*estimated_MI_std, alpha=0.2)
 
     ax_normal.legend(loc='upper left')
 

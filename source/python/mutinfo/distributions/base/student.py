@@ -36,10 +36,8 @@ def mutual_information_correction_term(X_dim: int, Y_dim: int,
     
     Parameters
     ----------
-    X_dim : int
-        Dimensionality of the first vector.
-    Y_dim : int
-        Dimensionality of the second vector.
+    X_dim, Y_dim : int
+        Dimensionality of corresponding vectors.
     degrees_of_freedom : int
         Number of dergees of freedom.
 
@@ -65,8 +63,6 @@ class correlated_multivariate_student(multi_rv_frozen):
 
         Parameters
         ----------
-        mean : array_like, default: ``[0]``
-            Mean of the distribution.
         cov : CovViaTridiagonal
             Tridiagonal symmetric positive (semi)definite covariance matrix of the
             auxiliary normal distribution.
@@ -79,7 +75,7 @@ class correlated_multivariate_student(multi_rv_frozen):
         self.normal = correlated_multivariate_normal(cov)
         self.chi2 = chi2(df=df, scale=1.0/df)
 
-    def rvs(self, size: int=1) -> numpy.ndarray:
+    def rvs(self, size: int=1) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
         Random variate.
 
@@ -107,7 +103,7 @@ class correlated_multivariate_student(multi_rv_frozen):
         Returns
         -------
         mutual_information : float
-            Mutual information
+            Mutual information.
         """
         return self.normal.mutual_information + \
                mutual_information_correction_term(

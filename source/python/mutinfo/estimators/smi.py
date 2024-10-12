@@ -15,14 +15,15 @@ class SMI(MutualInformationEstimator):
            with Dimension". NeurIPS, 2022.
     """
     
-    def __init__(self, estimator: callable, projection_dim: int=1,
+    def __init__(self, estimator: MutualInformationEstimator,
+                 projection_dim: int=1,
                  n_projection_samples: int=128) -> None:
         """
         Create a k-Sliced Mutual Information estimator
 
         Parameters
         ----------
-        estimator : callable
+        estimator : MutualInformationEstimator
             Base estimator used to estimate MI between projections.
         projection_dim : int, optional
             Dimensionality of the projection subspace.
@@ -53,7 +54,7 @@ class SMI(MutualInformationEstimator):
 
         Returns
         -------
-        Q : np.array
+        Q : numpy.ndarray
             Orthogonal projection matrix
         """
         
@@ -70,10 +71,8 @@ class SMI(MutualInformationEstimator):
 
         Parameters
         ----------
-        x : array_like
-            Samples from the first random vector.
-        y : array_like
-            Samples from the second random vector.
+        x, y : array_like
+            Samples from corresponding random vectors.
         std : bool
             Calculate standard deviation.
 

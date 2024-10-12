@@ -13,7 +13,7 @@ _metric_tree_types = {
 
 
 class kNN_based(MutualInformationEstimator):
-    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}) -> None:
+    def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}) -> None:
         """
         Create a k-NN based mutual information estimator.
 
@@ -21,9 +21,9 @@ class kNN_based(MutualInformationEstimator):
         ----------
         k_neighbors : int, optional
             Number of nearest neighbors to use for estimation.
-        tree_type : str, optional
-            Specifies the type of metric tree used for estimation
-            ('BallTree' or 'KDTree').
+        tree_type : {'ball_tree', 'kd_tree'}, optional
+            Specifies the type of metric tree used for estimation.
+            KDTree is used by defalt.
         tree_kwargs : dict, optional
             Metric tree additional arguments.
         """
@@ -39,7 +39,7 @@ class kNN_based(MutualInformationEstimator):
         self.tree_type = tree_type
         self.tree_kwargs = tree_kwargs
 
-    def make_tree(self, data: numpy.ndarray):
+    def make_tree(self, data: numpy.ndarray) -> BallTree | KDTree:
         """
         Build a metric tree over the provided data.
 
@@ -67,7 +67,7 @@ class KSG(kNN_based):
            information". Phys. Rev. E 69, 2004.
     """
     
-    def __init__(self, k_neighbors: int=1, tree_type='kd_tree', tree_kwargs: dict={}) -> None:
+    def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}) -> None:
         """
         Create a Kraskov-Stogbauer-Grassberger k-NN based
         mutual information estimator.
@@ -76,9 +76,9 @@ class KSG(kNN_based):
         ----------
         k_neighbors : int, optional
             Number of nearest neighbors to use for estimation.
-        tree_type : str, optional
-            Specifies the type of metric tree used for estimation
-            ('BallTree' or 'KDTree').
+        tree_type : {'ball_tree', 'kd_tree'}, optional
+            Specifies the type of metric tree used for estimation.
+            KDTree is used by defalt.
         tree_kwargs : dict, optional
             Metric tree additional arguments.
 
@@ -92,17 +92,15 @@ class KSG(kNN_based):
         super().__init__(k_neighbors, tree_type, tree_kwargs)
 
 
-    def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float:
+    def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float | tuple[float, float]:
         """
         Estimate the value of mutual information between two random vectors
         using samples `x` and `y`.
 
         Parameters
         ----------
-        x : array_like
-            Samples from the first random vector.
-        y : array_like
-            Samples from the second random vector.
+        x, y : array_like
+            Samples from corresponding random vectors.
         std : bool
             Calculate standard deviation.
 
