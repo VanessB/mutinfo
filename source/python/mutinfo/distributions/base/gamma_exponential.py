@@ -10,7 +10,8 @@ from ...utils.checks import _check_dimension_value, _check_mutual_information_va
 
 _EPS = 1.0e-6
 
-def _check_inverse_shape_parameter_value(inverse_shape_parameter: float, name: str="inverse_shape_parameter") -> None:
+def _check_inverse_shape_parameter_value(inverse_shape_parameter: float | numpy.ndarray,
+                                         name: str="inverse_shape_parameter") -> None:
     """
     Checks inverse shape parameter to be within [0.0; +inf)
 
@@ -82,14 +83,14 @@ def _scalar_mutual_information_to_inverse_shape_parameter(mutual_information: fl
 
 _vectorized_mutual_information_to_inverse_shape_parameter = numpy.vectorize(_scalar_mutual_information_to_inverse_shape_parameter)
 
-def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float) -> float:
+def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the mutual information between two random variables with a
     gamma-exponential joint distribution defined by the inverse shape parameter.
 
     Parameters
     ----------
-    shape_parameter : array_like
+    shape_parameter : float or array_like
         Shape parameter of a gamma-exponential distribution
         (strictly positive).
 
@@ -112,7 +113,7 @@ def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float
 
     return mutual_information.item() if is_float else mutual_information
 
-def mutual_information_to_inverse_shape_parameter(mutual_information: float) -> float:
+def mutual_information_to_inverse_shape_parameter(mutual_information: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the inverse shape parameter given the mutual information
     between two random variables with a gamma-exponential joint distribution.
@@ -170,7 +171,7 @@ class gamma_exponential(multi_rv_frozen):
 
         Returns
         -------
-        x, y : tuple[numpy.ndarray, numpy.ndarray]
+        x, y : numpy.ndarray
             Random sampling.
         """
 
@@ -193,7 +194,7 @@ class gamma_exponential(multi_rv_frozen):
 
         Returns
         -------
-        componentwise_mutual_information : np.array
+        componentwise_mutual_information : numpy.ndarray
             Componentwise mutual information.
         """
         return inverse_shape_parameter_to_mutual_information(self._inverse_shape_parameter)

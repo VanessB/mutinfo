@@ -77,10 +77,8 @@ def _generate_cov_via_tridiagonal(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim : int
-        Dimensionality of the first vector.
-    Y_dim : int
-        Dimensionality of the first vector.
+    X_dim, Y_dim : int
+        Dimensionality of the vectors.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
         (the total value of mutual information stays fixed).
@@ -119,10 +117,8 @@ def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim : int
-        Dimensionality of the first vector.
-    Y_dim : int
-        Dimensionality of the first vector.
+    X_dim, Y_dim : int
+        Dimensionality of the vectors.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
         (the total value of mutual information stays fixed).
@@ -151,10 +147,8 @@ def CorrelatedUniform(*args, **kwargs) -> tools.mapped_multi_rv_frozen:
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim : int
-        Dimensionality of the first vector.
-    Y_dim : int
-        Dimensionality of the first vector.
+    X_dim, Y_dim : int
+        Dimensionality of the vectors.
     randomize_correlation : bool, optional
         Randomize component-wise mutual information
         (the total value of mutual information stays fixed).
@@ -188,10 +182,8 @@ def CorrelatedStudent(mutual_information: float,
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim : int
-        Dimensionality of the first vector.
-    Y_dim : int
-        Dimensionality of the first vector.
+    X_dim, Y_dim : int
+        Dimensionality of the vectors.
     degrees_of_freedom : int
         Number of degrees of freedom.
     randomize_interactions : bool, optional

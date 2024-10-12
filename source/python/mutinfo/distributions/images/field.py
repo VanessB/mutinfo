@@ -1,26 +1,26 @@
 import numpy
 
-from ..base import CorrelatedNormal
-from .. import mapped
+from collections.abc import Callable
 
 
-def draw_field(parameters: numpy.array, field_function: callable,
-               grid_shape: tuple) -> list:
+def draw_field(parameters: numpy.ndarray,
+               field_function: Callable[[list[numpy.ndarray]], numpy.ndarray],
+               grid_shape: tuple[int, ...]) -> numpy.ndarray:
     """
     Uniformly evaluate and draw a field.
     
     Parameters
     ----------
-    parameters : numpy.array
+    parameters : numpy.ndarray
         Samples of parameters.
-    field_function : callable
+    field_function : Callable[[list[numpy.ndarray]], numpy.ndarray]
         Parametric function defining a field.
-    grid_shape : tuple
+    grid_shape : tuple[int, ...]
         Shape of a uniform grid, on which the field is evaluated.
 
     Returns
     -------
-    images : list(numpy.array)
+    images : numpy.ndarray
         Multidimensional array of field values on the grid.
     """
     
@@ -32,21 +32,26 @@ def draw_field(parameters: numpy.array, field_function: callable,
     return images
 
 
-def symmetric_gaussian_field(grid: list, parameters: numpy.array, sigma: float=0.2):
+def symmetric_gaussian_field(grid: list[numpy.ndarray], parameters: numpy.ndarray, sigma: float=0.2) -> numpy.ndarray:
     """
     Symmetric Gaussian field.
 
     Parameters
     ----------
-    grid : list(numpy.array)
+    grid : list[numpy.ndarray]
         d-Dimensional grid to evaluate the field on.
-    parameters : numpy.array
+    parameters : numpy.ndarray
         Coordinates of the mode, shape: (?,d).
     sigma : float, optional
         Scale parameter.
+
+    Returns
+    -------
+    images : numpy.ndarray
+        Multidimensional array of field values on the grid.
     """
 
-    dimension = len(grid)
-    parameters = parameters[(...,) + (numpy.newaxis,) * dimension]
+    dimensionality = len(grid)
+    parameters = parameters[(...,) + (numpy.newaxis,) * dimensionality]
 
     return numpy.exp(-0.5 * sum((coordinate - parameters[:,axis])**2 for axis, coordinate in enumerate(grid)) / sigma**2)

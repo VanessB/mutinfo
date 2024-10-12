@@ -5,7 +5,8 @@ from scipy.stats._multivariate import multivariate_normal_frozen
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _check_correlation_value(correlation_coefficient: float, name: str="correlation_coefficient") -> None:
+def _check_correlation_value(correlation_coefficient: float | numpy.ndarray,
+                             name: str="correlation_coefficient") -> None:
     """
     Checks a correlation coefficient to be within (-1.0; 1.0)
 
@@ -21,7 +22,7 @@ def _check_correlation_value(correlation_coefficient: float, name: str="correlat
     if numpy.any(correlation_coefficient <= -1.0) or numpy.any(correlation_coefficient >= 1.0):
         raise ValueError(f"Expected `{name}` to lie within (-1.0; 1.0)")
 
-def mutual_information_to_correlation(mutual_information: float) -> float:
+def mutual_information_to_correlation(mutual_information: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the absolute value of the correlation coefficient between two
     jointly Gaussian random variables given the value of mutual information.
@@ -41,7 +42,7 @@ def mutual_information_to_correlation(mutual_information: float) -> float:
 
     return numpy.sqrt(1 - numpy.exp(-2.0 * mutual_information))
 
-def correlation_to_mutual_information(correlation_coefficient: float) -> float:
+def correlation_to_mutual_information(correlation_coefficient: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the mutual information between two jointly Gaussian random
     variables given the correlation coefficient.
@@ -68,7 +69,7 @@ def covariance_matrix_to_mutual_information(covariance_matrix: numpy.ndarray, sp
 
     Parameters
     ----------
-    covariance_matrix : np.array
+    covariance_matrix : numpy.ndarray
         Symmetric positive semidefinite matrix.
     split_dimension : int
         Specifies the dimensionality of the first vector.
@@ -100,7 +101,7 @@ def covariance_matrix_to_differential_entropy(covariance_matrix: numpy.ndarray) 
 
     Parameters
     ----------
-    covariance_matrix : np.array
+    covariance_matrix : numpy.ndarray
         Symmetric positive semidefinite matrix.
 
     Returns
@@ -117,7 +118,7 @@ def covariance_matrix_to_differential_entropy(covariance_matrix: numpy.ndarray) 
 
     return 0.5 * (dimensionality * math.log(2.0 * math.pi * math.e) + logabsdet)
 
-def get_tridiagonal_whitening_parameters(correlation_coefficient: float) -> float:
+def get_tridiagonal_whitening_parameters(correlation_coefficient: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the parameters (on- and off-diagonal elements)
     of the whitening transform.
@@ -140,7 +141,7 @@ def get_tridiagonal_whitening_parameters(correlation_coefficient: float) -> floa
 
     return (alpha + beta, alpha - beta)
 
-def get_tridiagonal_colorizing_parameters(correlation_coefficient: float) -> float:
+def get_tridiagonal_colorizing_parameters(correlation_coefficient: float | numpy.ndarray) -> float | numpy.ndarray:
     """
     Calculate the parameters (on- and off-diagonal elements)
     of the colorizing transform.
@@ -177,10 +178,9 @@ class CovViaTridiagonal(Covariance):
         ----------
         correlation_coefficient : array_like
             1D array of correlation coefficients between random vectors.
-        X_orthogonal_matrix : array_like
-            Linear orthogonal mapping which is applied to the first vector.
-        Y_orthogonal_matrix : array_like
-            Linear orthogonal mapping which is applied to the second vector.
+        X_orthogonal_matrix, Y_orthogonal_matrix : array_like
+            Linear orthogonal mappings which are applied to the first
+            and the second vector correspondingly.
         """
 
         self._X_orthogonal_matrix = X_orthogonal_matrix
@@ -227,24 +227,19 @@ class CovViaTridiagonal(Covariance):
 
         Parameters
         ----------
-        x : array_like
-            An array of points. The last dimension must correspond to the
-            dimensionality of the space, i.e., the number of columns in the
-            covariance matrix.
-        y : array_like
-            An array of points. The last dimension must correspond to the
+        x, y : array_like
+            Arrays of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
         on_diagonal : array_like
             Array of on-diagonal elements of the transform.
         off_diagonal : array_like
             Array of off-diagonal elements of the transform.
-        
 
         Returns
         -------
-        (X_, Y_) : tuple[numpy.ndarray]
-            The transformed arrays of points.
+        X_, Y_ : numpy.ndarray
+            Transformed arrays of points.
         """
 
         for parameters in [on_diagonal, off_diagonal]:
@@ -274,7 +269,7 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x_y : array_like
-            An array of points. The last dimension must correspond to the
+            Joint array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
         whiten : bool
@@ -283,7 +278,7 @@ class CovViaTridiagonal(Covariance):
         Returns
         -------
         x_y_ : numpy.ndarray
-            The transformed array of points.
+            Transformed joint array of points.
         """
 
         if x_y.shape[-1] != self._X_dim + self._Y_dim:
@@ -324,14 +319,14 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x_y : array_like
-            An array of points. The last dimension must correspond to the
+            Joint array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
 
         Returns
         -------
         x_y_ : numpy.ndarray
-            The transformed array of points.
+            Transformed joint array of points.
         """
 
         return self._whiten_colorize(x_y, whiten=True)
@@ -343,14 +338,14 @@ class CovViaTridiagonal(Covariance):
         Parameters
         ----------
         x_y : array_like
-            An array of points. The last dimension must correspond to the
+            Joint array of points. The last dimension must correspond to the
             dimensionality of the space, i.e., the number of columns in the
             covariance matrix.
 
         Returns
         -------
         x_y_ : numpy.ndarray
-            The transformed array of points.
+            Transformed joint array of points.
         """
 
         return self._whiten_colorize(x_y, whiten=False)    
@@ -362,7 +357,7 @@ class CovViaTridiagonal(Covariance):
 
         Returns
         -------
-        componentwise_mutual_information : np.array
+        componentwise_mutual_information : numpy.ndarray
             Componentwise mutual information
         """
         return correlation_to_mutual_information(self._correlation_coefficient)
@@ -408,7 +403,7 @@ class CovViaTridiagonal(Covariance):
 
         Returns
         -------
-        covariance_matrix : nummpy.array
+        covariance_matrix : nummpy.ndarray
             Covariance matrix.
         """
 
@@ -462,8 +457,6 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
 
         Parameters
         ----------
-        mean : array_like, default: ``[0]``
-            Mean of the distribution.
         cov : CovViaTridiagonal
             Tridiagonal symmetric positive (semi)definite covariance matrix of the
             distribution.

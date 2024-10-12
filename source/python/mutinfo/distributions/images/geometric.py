@@ -1,24 +1,22 @@
 import numpy
-
-from ..base import CorrelatedNormal
-from .. import mapped
+import math
 
 
-def uniform_to_segment(x: numpy.array, min_length: float) -> numpy.array:
+def uniform_to_segment(x: numpy.ndarray, min_length: float=0.0) -> numpy.ndarray:
     """
     Map a 2D uniformly distributed random vector to a random segment.
     The coordinates of the ends are distributed uniformly, preserving order.
     
     Parameters
     ----------
-    x : numpy.array
+    x : numpy.ndarray
         Samples from an uniform distribution on [0; 1]^2, shape: (?,2).
     min_length : float, optional
-        Minimum length of the segment (must be in [0; 1)).
+        Minimum length of the segment (must lie in [0; 1)).
 
     Returns
     -------
-    coords : numpy.array
+    coords : numpy.ndarray
         Coordinates of the ends of sampled random segments.
     """
         
@@ -42,74 +40,99 @@ def uniform_to_segment(x: numpy.array, min_length: float) -> numpy.array:
     return coords
 
 
-def uniform_to_rectangle(x: numpy.array, min_width: float=0.0, min_height: float=0.0,
-                         max_width: float=1.0, max_height: float=1.0) -> numpy.array:
+def uniform_to_rectangle(x: numpy.ndarray, min_size: tuple[int, ...], nax_size: tuple[int, ...]=None) -> numpy.ndarray:
     """
-    Map a 4D uniformly distributed random vector to a random rectangle.
+    Map a 2d-dimensional uniformly distributed random vector
+    to a random d-dimensional hyperrectangle.
     The coordinates of the corners are distributed uniformly, preserving order.
     
     Parameters
     ----------
-    x : numpy.array
-        Samples from an uniform distribution on [0; 1]^4, shape: (?,4).
-    min_width : float, optional
-        Minimum width of the rectangle.
-    min_height : float, optional
-        Minimum height of the rectangle.
-    max_width : float, optional
-        Maximum width of the rectangle.
-    max_height : float, optional
-        Maximum height of the rectangle.
+    x : numpy.ndarray
+        Samples from an uniform distribution on [0; 1]^{2d}, shape: (?,2d).
+    min_size : tuple[int, ...]
+        Minimum size of the rectangle.
+    max_size : tuple[int, ...], optional
+        Maximum size of the rectangle.
+        Default value: (1.0, ...).
 
     Returns
     -------
-    coords : numpy.array
-        Coordinates of the corners of sampled random rectangles.
+    coords : numpy.ndarray
+        Coordinates of the corners of sampled random hyperrectangles.
     """
 
-    if len(x.shape) != 2 or x.shape[1] != 4:
-        raise TypeError("Parameter `x` must have shape (?,2)")
+    if nax_size is None:
+        max_size = (1.0,) * len(min_size)
+    elif len(min_size) != len(max_size):
+        raise ValueError("Expected `min_size` and `max_size` to be of the same length.")
+        
+    dimensionality = len(min_size)
+
+    if len(x.shape) != 2 or x.shape[1] != 2*dimensionality:
+        raise ValueError(f"Expected `x` to be of shape (?,{2*dimensionality})")
 
     coords = numpy.empty_like(x)
-    coords[:,0:2] = uniform_to_segment(x[:,0:2], min_width  / max_width)  * max_width
-    coords[:,2:4] = uniform_to_segment(x[:,2:4], min_height / max_height) * max_height
+    for axis in range(dimensionality):
+        coords[:,2*axis:2*(axis+1)] = uniform_to_segment(x[:,2*axis:2*(axis+1)], min_size[axis] / max_size[axis]) * max_size[axis]
 
     return coords
 
 
-def draw_rectangle(coords: numpy.array, image_width: int, image_height: int) -> numpy.array:
+def draw_rectangle(coords: numpy.ndarray, image_shape: tuple[int, ...]) -> numpy.ndarray:
     """
-    Map coordinates of rectangles to rasterized images of rectangles.
+    Map coordinates of hyperrectangles to corresponding rasterized images.
     
     Parameters
     ----------
-    coords : numpy.array
-        Normalized coordinates of the corners of rectangles, shape: (?,4).
-    image_width : int
-        Image width in pixels.
-    image_height : int
-        Image height in pixels.
+    coords : numpy.ndarray
+        Normalized coordinates of the corners of d-dimensional hyperrectangles,
+        shape: (?,2d).
+    image_shape : tuple[int, ...]
+        Image size in pixels/voxels/...
+
+    Returns
+    -------
+    images : numpy.ndarray
+        Rasterized images of hyperrectangles.
     """
 
-    if len(coords.shape) != 2 or coords.shape[1] != 4:
-        raise TypeError("Parameter `coords` must have shape (?,4)")
+    dimensionality = len(image_shape)
+    
+    if len(coords.shape) != 2 or coords.shape[1] != 2*dimensionality:
+        raise ValueError(f"Expected `coords` to be of shape (?,{2*dimensionality})")
         
     n_samples = coords.shape[0]
 
     # Denormalized coordinates.
     denormalized_coords = numpy.empty_like(coords)
-    denormalized_coords[:,0:2] = coords[:,0:2] * image_width
-    denormalized_coords[:,2:4] = coords[:,2:4] * image_height
-
-    #integer_denormalized_coords = denormalized_coords.astype(int)
+    for axis in range(dimensionality):
+        denormalized_coords[:,2*axis:2*(axis+1)] = coords[:,2*axis:2*(axis+1)] * image_shape[axis]
 
     # Grid.
-    grid_x = numpy.arange(image_width)
-    grid_y = numpy.arange(image_height)
+    grid = [numpy.arange(image_shape[axis]) for axis in range(dimensionality)]
 
     # Images generation.
-    images_x = numpy.clip(numpy.minimum(grid_x[None,...] - denormalized_coords[:,0,None], denormalized_coords[:,1,None] - grid_x[None,...]), 0.0, 1.0)
-    images_y = numpy.clip(numpy.minimum(grid_y[None,...] - denormalized_coords[:,2,None], denormalized_coords[:,3,None] - grid_y[None,...]), 0.0, 1.0)
-    images = images_x[:,:,None] * images_y[:,None,:]
+    # Oh god, oh no...
+    images_projections = [
+        numpy.clip(
+            numpy.minimum(
+                grid[axis][numpy.newaxis,...] - denormalized_coords[:,2*axis,numpy.newaxis],
+                denormalized_coords[:,2*axis+1,numpy.newaxis] - grid[axis][numpy.newaxis,...]
+            ),
+            0.0, 1.0
+        ) for axis in range(dimensionality)
+    ]
+
+    # Black magic: d-dimensional outer product.
+    # Why can't numpy.meshgrid work with 2D arrays?
+    images_projections = [
+        images_projections[axis][(slice(None),) + (numpy.newaxis,)*axis + (slice(None),) + (numpy.newaxis,)*(dimensionality - axis - 1)]
+        for axis in range(dimensionality)
+    ]
+
+    #images = numpy.multiply.reduce(images_projections)
+    # Broadcasting does not work with numpy.multiply.reduce
+    images = math.prod(images_projections)
 
     return images
