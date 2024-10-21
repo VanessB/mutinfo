@@ -1,0 +1,9 @@
+# @package _global_
+
+distribution_key: dim=${distribution.dimensionality}
+
+hydra:
+  sweeper:
+    params:
+      ++distribution._target_: mutinfo.distributions.base.UniformlyQuantized
+      ++distribution.dimensionality: ${default_grid.dimensionality}
