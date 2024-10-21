@@ -30,7 +30,7 @@ class kNN_based(MutualInformationEstimator):
 
         if k_neighbors < 1:
             raise ValueError("The number of neighbors must be at least 1")
-        
+
         self.k_neighbors = k_neighbors
 
         if not tree_type in _metric_tree_types:
@@ -53,7 +53,7 @@ class kNN_based(MutualInformationEstimator):
         tree : BallTree or KDTree
             The metric tree over `data` points.
         """
-        
+
         return _metric_tree_types[self.tree_type](data, **self.tree_kwargs)
 
 
@@ -66,7 +66,7 @@ class KSG(kNN_based):
     .. [1] A. Kraskov, H. Stogbauer and P. Grassberger, "Estimating mutual
            information". Phys. Rev. E 69, 2004.
     """
-    
+
     def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}) -> None:
         """
         Create a Kraskov-Stogbauer-Grassberger k-NN based
@@ -113,7 +113,7 @@ class KSG(kNN_based):
         """
 
         self._check_arguments(x, y)
-        
+
         n_samples = x.shape[0]
         k_neighbors = min(self.k_neighbors, n_samples-1)
 
@@ -132,7 +132,7 @@ class KSG(kNN_based):
         # Count marginal neighbors within x_y_distances.
         x_count = x_tree.query_radius(x, x_y_distances, count_only=True)
         y_count = y_tree.query_radius(y, x_y_distances, count_only=True)
-        
+
         array = digamma(x_count) + digamma(y_count)
         mean = max(0.0, digamma(k_neighbors) + digamma(n_samples) - numpy.mean(array))
 

@@ -1,0 +1,9 @@
+# @package _global_
+
+estimator:
+  _target_: mutinfo.estimators.knn.KSG
+
+hydra:
+  sweeper:
+    params:
+      ++estimator.k_neighbors: 1, 2, 3, 5, 10, 20

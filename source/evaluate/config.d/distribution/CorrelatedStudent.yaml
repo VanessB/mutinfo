@@ -1,0 +1,16 @@
+# @package _global_
+distribution:
+  X_dim: 1
+
+distribution_key: X_dim=${distribution.X_dim}__Y_dim=${distribution.Y_dim}/dof=${distribution.degrees_of_freedom}
+
+hydra:
+  sweeper:
+    params:
+      ++distribution._target_: mutinfo.distributions.base.CorrelatedStudent
+      ++distribution.X_dim: ${default_grid.dimensionality}
+      ++distribution.Y_dim: ${default_grid.dimensionality}
+      # Does not work as expected, X_dim is constant for some reason.
+      #++distribution.Y_dim: range(${distribution.X_dim}, 0, -1) # Have to do it in reverse to include the highest value.
+      ++distribution.mutual_information: range(1.0, 11.0)
+      ++distribution.degrees_of_freedom: 1, 2, 3, 4, 5
