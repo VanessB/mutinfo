@@ -1,18 +1,16 @@
 # @package _global_
 
 distribution:
-  _target_: mutinfo.distributions.base.CorrelatedStudent
+  _target_: mutinfo.distributions.base.CorrelatedNormal
   # To use shared dimensionality.
   X_dim: ${dimensionality}
   Y_dim: ${dimensionality}
 
-distribution_key: X_dim=${distribution.X_dim}__Y_dim=${distribution.Y_dim}/dof=${distribution.degrees_of_freedom}
+distribution_key: X_dim=${distribution.X_dim}__Y_dim=${distribution.Y_dim}
 
 hydra:
   sweeper:
     params:
-      ++distribution.mutual_information: ${default_grid.nonzero_mutual_information}
-      ++distribution.degrees_of_freedom: 1, 2, 3, 4, 5
       # To use different dimensionalities.
       #++distribution.X_dim: ${default_grid.dimensionality}
       #++distribution.Y_dim: ${default_grid.dimensionality}
