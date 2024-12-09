@@ -4,9 +4,11 @@ from scipy.stats._multivariate import multi_rv_frozen
 
 from collections.abc import Callable, Iterable
 
+import mutinfo
+
 
 def run_tests(distribution_factory: Callable[[float], multi_rv_frozen],
-              estimator: MutualInformationEstimator,
+              estimator: mutinfo.estimators.base.MutualInformationEstimator,
               MI_grid: Iterable[float], n_samples: int, n_runs: int) -> numpy.ndarray:
     """
     Iteratively run mutual information estimation tests.

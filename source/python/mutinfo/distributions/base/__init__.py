@@ -15,14 +15,14 @@ from .. import tools
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _sample_from_simplex(dimension: int) -> numpy.ndarray:
+def _sample_from_simplex(dimensionality: int) -> numpy.ndarray:
     """
     Obtain a sample from the uniform distribution on a multidimensional simplex.
 
     Parameters
     ----------
-    dimension : int
-        Dimension of the simplex.
+    dimensionality : int
+        Dimensionality of the simplex.
 
     Returns
     -------
@@ -30,12 +30,15 @@ def _sample_from_simplex(dimension: int) -> numpy.ndarray:
         One sample from the uniform distribution on a multidimensional simplex.
     """
     
-    result = numpy.random.exponential(scale=1.0, size=dimension)
+    result = numpy.random.exponential(scale=1.0, size=dimensionality)
     return result / numpy.sum(result)
 
 
-def _distribute_mutual_information(mutual_information: float, dimensionality: int,
-                                   uniform: bool=True) -> numpy.ndarray:
+def _distribute_mutual_information(
+    mutual_information: float,
+    dimensionality: int,
+    uniform: bool=True
+) -> numpy.ndarray:
     """
     Uniformly or randomly distribute mutual information along dimensions.
 
@@ -65,10 +68,13 @@ def _distribute_mutual_information(mutual_information: float, dimensionality: in
         
 
 
-def _generate_cov_via_tridiagonal(mutual_information: float,
-                                  X_dim: int, Y_dim: int,
-                                  randomize_interactions: bool=True,
-                                  shuffle_interactions: bool=True) -> normal.CovViaTridiagonal:
+def _generate_cov_via_tridiagonal(
+    mutual_information: float,
+    X_dim: int,
+    Y_dim: int,
+    randomize_interactions: bool=True,
+    shuffle_interactions: bool=True
+) -> normal.CovViaTridiagonal:
     """
     Create a covariance matrix for a correlated multivariate normal distribution
     given the value of the mutual information between the subvectors.
@@ -169,11 +175,14 @@ def CorrelatedUniform(*args, **kwargs) -> tools.mapped_multi_rv_frozen:
     return tools.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), lambda x, y: (ndtr(x), ndtr(y)), lambda x, y: (ndtri(x), ndtri(y)))
 
 
-def CorrelatedStudent(mutual_information: float,
-                      X_dim: int, Y_dim: int,
-                      degrees_of_freedom: int,
-                      randomize_interactions: bool=True,
-                      shuffle_interactions: bool=True) -> student.correlated_multivariate_student:
+def CorrelatedStudent(
+    mutual_information: float,
+    X_dim: int,
+    Y_dim: int,
+    degrees_of_freedom: int,
+    randomize_interactions: bool=True,
+    shuffle_interactions: bool=True
+) -> student.correlated_multivariate_student:
     """
     Create a multivariate correlated Student's distribution
     given the value of the mutual information between the subvectors.
@@ -219,10 +228,13 @@ def CorrelatedStudent(mutual_information: float,
     return student.correlated_multivariate_student(covariance, degrees_of_freedom)
 
 
-def GammaExponential(mutual_information: float, dimensionality: int,
-                     randomize_interactions: bool=True) -> gamma_exponential.gamma_exponential:
+def LogGammaExponential(
+    mutual_information: float,
+    dimensionality: int,
+    randomize_interactions: bool=True
+) -> gamma_exponential.log_gamma_exponential:
     """
-    Create a multivariate gamma-exponential distribution
+    Create a multivariate log-gamma-exponential distribution
     given the value of the mutual information between the subvectors.
 
     Parameters
@@ -238,19 +250,23 @@ def GammaExponential(mutual_information: float, dimensionality: int,
 
     Returns
     -------
-    random_variable : gamma_exponential.gamma_exponential
-        An instance of gamma_exponential.gamma_exponential
+    random_variable : gamma_exponential.log_gamma_exponential
+        An instance of gamma_exponential.log_gamma_exponential
         with the provided value of the mutual information.
     """
 
     componentwise_mutual_information = _distribute_mutual_information(mutual_information, dimensionality, not randomize_interactions)
     inverse_shape_parameter = gamma_exponential.mutual_information_to_inverse_shape_parameter(componentwise_mutual_information)
     
-    return gamma_exponential.gamma_exponential(inverse_shape_parameter)
+    return gamma_exponential.log_gamma_exponential(inverse_shape_parameter)
 
 
-def UniformlyQuantized(mutual_information: float, dimensionality: int,
-                       base_rv: rv_frozen, randomize_interactions: bool=False) -> quantized.quantized_rv:
+def UniformlyQuantized(
+    mutual_information: float,
+    dimensionality: int,
+    base_rv: rv_frozen,
+    randomize_interactions: bool=False
+) -> quantized.quantized_rv:
     """
     Create a two-dimensional mixed-type distribution
     given the value of the mutual information between the components.
@@ -284,8 +300,11 @@ def UniformlyQuantized(mutual_information: float, dimensionality: int,
     return tools.stacked_multi_rv_frozen(quantized.quantized_rv(base_rv, quantiles), dimensionality)
 
 
-def SmoothedUniform(mutual_information: float, dimensionality: int,
-                    randomize_interactions: bool=True) -> smoothed_uniform.smoothed_uniform:
+def SmoothedUniform(
+    mutual_information: float,
+    dimensionality: int,
+    randomize_interactions: bool=True
+) -> smoothed_uniform.smoothed_uniform:
     """
     Create a multivariate smoothed uniform distribution
     with defined mutual information between subvectors.

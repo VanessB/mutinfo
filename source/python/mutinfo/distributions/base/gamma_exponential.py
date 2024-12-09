@@ -2,7 +2,7 @@ import numpy
 import math
 from scipy.optimize import root_scalar
 from scipy.special import digamma
-from scipy.stats import gamma, expon
+from scipy.stats import gamma, expon, loggamma
 from scipy.stats._multivariate import multi_rv_frozen
 
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
@@ -10,8 +10,10 @@ from ...utils.checks import _check_dimension_value, _check_mutual_information_va
 
 _EPS = 1.0e-6
 
-def _check_inverse_shape_parameter_value(inverse_shape_parameter: float | numpy.ndarray,
-                                         name: str="inverse_shape_parameter") -> None:
+def _check_inverse_shape_parameter_value(
+    inverse_shape_parameter: float | numpy.ndarray,
+    name: str="inverse_shape_parameter"
+) -> None:
     """
     Checks inverse shape parameter to be within [0.0; +inf)
 
@@ -139,12 +141,15 @@ def mutual_information_to_inverse_shape_parameter(mutual_information: float | nu
     return inverse_shape_parameter
 
 
-class gamma_exponential(multi_rv_frozen):
-    def __init__(self, inverse_shape_parameter: numpy.ndarray,
-                 *args, **kwargs) -> None:
+class log_gamma_exponential(multi_rv_frozen):
+    def __init__(
+        self,
+        inverse_shape_parameter: numpy.ndarray,
+        *args, **kwargs
+    ) -> None:
         """
         Create a multivariate random vector with
-        a gamma-exponential distribution.
+        a log-gamma-exponential distribution.
 
         Parameters
         ----------
@@ -176,13 +181,12 @@ class gamma_exponential(multi_rv_frozen):
         """
 
         dimensionality = self._inverse_shape_parameter.shape[0]
-        x = numpy.stack([numpy.ones(size) if k <= _EPS else gamma.rvs(a=1.0/k, loc=1.0e-12, scale=k, size=(size,)) for k in self._inverse_shape_parameter], axis=1)
-        y = expon.rvs(size=(size, dimensionality))
-
-        # Numerically stable, mutual information is not alternated.
-        # TODO: make a new random variable or rename this to account for log
-        x = numpy.log(x)
-        y = numpy.log(y)
+        
+        x = numpy.stack(
+            [numpy.zeros(size) if k <= _EPS else loggamma.rvs(c=1.0/k, size=(size,)) for k in self._inverse_shape_parameter],
+            axis=1
+        )
+        y = loggamma.rvs(c=1.0, size=(size, dimensionality))
         y -= x
         
         return x, y

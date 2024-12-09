@@ -1,6 +1,6 @@
 import numpy
 
-from mutinfo.distributions.base import CorrelatedNormal, CorrelatedUniform, CorrelatedStudent, SmoothedUniform, UniformlyQuantized
+from mutinfo.distributions.base import CorrelatedNormal, CorrelatedUniform, CorrelatedStudent, SmoothedUniform, LogGammaExponential, UniformlyQuantized
 from mutinfo.estimators.knn import KSG
 
 from . import estimator_tester
@@ -68,6 +68,22 @@ def test_ksg_smoothed_uniform():
         lambda mutual_information, X_dimension, Y_dimension: SmoothedUniform(mutual_information, X_dimension),
         numpy.linspace(0.0, 1.0, 5),
         "Bad KSG estimates for smoothed uniform distribution",
+        range(1, 3),
+        n_samples=10000,
+        atol=0.1,
+        rtol=0.05
+    )
+
+def test_ksg_log_gamma_exponential():
+    """
+    Test the KSG estimator on log-gamma-exponential distributions.
+    """
+
+    estimator_tester.run_tests(
+        KSG,
+        lambda mutual_information, X_dimension, Y_dimension: LogGammaExponential(mutual_information, X_dimension),
+        numpy.linspace(0.0, 1.0, 5),
+        "Bad KSG estimates for log-gamma-exponential distribution",
         range(1, 3),
         n_samples=10000,
         atol=0.1,

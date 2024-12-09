@@ -5,8 +5,10 @@ from scipy.stats._multivariate import multivariate_normal_frozen
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _check_correlation_value(correlation_coefficient: float | numpy.ndarray,
-                             name: str="correlation_coefficient") -> None:
+def _check_correlation_value(
+    correlation_coefficient: float | numpy.ndarray,
+    name: str="correlation_coefficient"
+) -> None:
     """
     Checks a correlation coefficient to be within (-1.0; 1.0)
 
@@ -166,9 +168,12 @@ def get_tridiagonal_colorizing_parameters(correlation_coefficient: float | numpy
 
 
 class CovViaTridiagonal(Covariance):
-    def __init__(self, correlation_coefficient: numpy.ndarray,
-                 X_orthogonal_matrix: numpy.ndarray=None,
-                 Y_orthogonal_matrix: numpy.ndarray=None) -> None:
+    def __init__(
+        self,
+        correlation_coefficient: numpy.ndarray,
+        X_orthogonal_matrix: numpy.ndarray=None,
+        Y_orthogonal_matrix: numpy.ndarray=None
+    ) -> None:
         """
         Create a Covariance object via a tridiagonal block form.
         This is a covariance matrix of jointly Gaussain random vectors
@@ -220,8 +225,13 @@ class CovViaTridiagonal(Covariance):
 
         self._allow_singular = False
 
-    def _apply_tridiagonal(self, x: numpy.ndarray, y: numpy.ndarray,
-                           on_diagonal: numpy.ndarray, off_diagonal: numpy.ndarray) -> tuple[numpy.ndarray, numpy.ndarray]:
+    def _apply_tridiagonal(
+        self,
+        x: numpy.ndarray,
+        y: numpy.ndarray,
+        on_diagonal: numpy.ndarray,
+        off_diagonal: numpy.ndarray
+    ) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
         Split the data and perform a tridiagonal transformation.
 
