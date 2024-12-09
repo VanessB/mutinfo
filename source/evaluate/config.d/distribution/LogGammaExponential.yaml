@@ -1,7 +1,7 @@
 # @package _global_
 
 distribution:
-  _tarhget_: mutinfo.distributions.base.GammaExponential
+  _target_: mutinfo.distributions.base.LogGammaExponential
 
 distribution_key: dim=${distribution.dimensionality}
 

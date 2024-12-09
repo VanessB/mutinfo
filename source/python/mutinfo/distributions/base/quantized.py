@@ -58,8 +58,12 @@ class quantized_rv(multi_rv_frozen):
     Frozen quantized distribution with known mutual information.
     """
     
-    def __init__(self, base_rv: rv_frozen, quantiles: numpy.ndarray,
-                 *args, **kwargs) -> None:
+    def __init__(
+        self,
+        base_rv: rv_frozen,
+        quantiles: numpy.ndarray,
+        *args, **kwargs
+    ) -> None:
         """
         Create a frozen quantized distribution with known mutual information.
 

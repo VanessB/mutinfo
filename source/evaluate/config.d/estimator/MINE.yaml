@@ -1,0 +1,6 @@
+# @package _global_
+
+estimator:
+  _target_: mutinfo.estimators.neural.mine.MINE
+  n_train_epochs: 500
+  device: "cuda"

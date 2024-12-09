@@ -29,8 +29,11 @@ def entropy_correction_term(dimensionality: int) -> float:
     return loggamma(half_dimension) - half_dimension * digamma(half_dimension)
 
 
-def mutual_information_correction_term(X_dim: int, Y_dim: int,
-                                       degrees_of_freedom: int) -> float:
+def mutual_information_correction_term(
+    X_dim: int,
+    Y_dim: int,
+    degrees_of_freedom: int
+) -> float:
     """
     Calculate entropy correction term for Student's distribution.
     

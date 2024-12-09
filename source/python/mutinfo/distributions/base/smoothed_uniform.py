@@ -6,8 +6,10 @@ from scipy.stats._multivariate import multi_rv_frozen
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
-def _check_inverse_smoothing_epsilon_value(inverse_smoothing_epsilon: float | numpy.ndarray,
-                                           name: str="inverse_smoothing_epsilon") -> None:
+def _check_inverse_smoothing_epsilon_value(
+    inverse_smoothing_epsilon: float | numpy.ndarray,
+    name: str="inverse_smoothing_epsilon"
+) -> None:
     """
     Checks an inverse smoothing epsilon parameter to be within [0.0; +inf)
 
@@ -80,8 +82,11 @@ def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float | 
 
 
 class smoothed_uniform(multi_rv_frozen):
-    def __init__(self, inverse_smoothing_epsilon: numpy.ndarray,
-                 *args, **kwargs) -> None:
+    def __init__(
+        self,
+        inverse_smoothing_epsilon: numpy.ndarray,
+        *args, **kwargs
+    ) -> None:
         """
         Create a multivariate random vector with
         a smoothed uniform distribution.
