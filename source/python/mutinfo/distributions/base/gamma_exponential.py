@@ -1,5 +1,6 @@
 import numpy
 import math
+
 from scipy.optimize import root_scalar
 from scipy.special import digamma
 from scipy.stats import gamma, expon, loggamma
@@ -142,6 +143,10 @@ def mutual_information_to_inverse_shape_parameter(mutual_information: float | nu
 
 
 class log_gamma_exponential(multi_rv_frozen):
+    """
+    Frozen log-gamma-exponential distribution with known mutual information.
+    """
+    
     def __init__(
         self,
         inverse_shape_parameter: numpy.ndarray,

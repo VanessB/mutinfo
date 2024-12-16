@@ -1,4 +1,5 @@
 import numpy
+
 from scipy.special import digamma, loggamma
 from scipy.stats import chi2
 from scipy.stats._multivariate import multi_rv_frozen
