@@ -1,4 +1,5 @@
 import numpy
+
 from scipy.stats import Covariance, ortho_group
 from scipy.stats._multivariate import multivariate_normal_frozen
 

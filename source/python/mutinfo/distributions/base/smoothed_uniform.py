@@ -1,4 +1,5 @@
 import numpy
+
 from scipy.special import lambertw
 from scipy.stats import uniform
 from scipy.stats._multivariate import multi_rv_frozen
