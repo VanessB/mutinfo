@@ -7,6 +7,7 @@ from scipy.stats import randint
 from scipy.stats._distn_infrastructure import rv_discrete_frozen
 from scipy.stats._multivariate import multi_rv_frozen
 
+
 class selector(multi_rv_frozen):
     """
     Frozen distribution with label data.

@@ -13,7 +13,7 @@ _metric_tree_types = {
 
 
 class kNN_based(MutualInformationEstimator):
-    def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}) -> None:
+    def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}, **kwargs) -> None:
         """
         Create a k-NN based mutual information estimator.
 
@@ -27,6 +27,8 @@ class kNN_based(MutualInformationEstimator):
         tree_kwargs : dict, optional
             Metric tree additional arguments.
         """
+
+        super().__init__(**kwargs)
 
         if k_neighbors < 1:
             raise ValueError("The number of neighbors must be at least 1")
@@ -67,7 +69,7 @@ class KSG(kNN_based):
            information". Phys. Rev. E 69, 2004.
     """
 
-    def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}) -> None:
+    def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}, **kwargs) -> None:
         """
         Create a Kraskov-Stogbauer-Grassberger k-NN based
         mutual information estimator.
@@ -89,7 +91,7 @@ class KSG(kNN_based):
         """
 
         tree_kwargs["metric"] = "chebyshev"
-        super().__init__(k_neighbors, tree_type, tree_kwargs)
+        super().__init__(k_neighbors, tree_type, tree_kwargs, **kwargs)
 
 
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float | tuple[float, float]:
@@ -116,6 +118,9 @@ class KSG(kNN_based):
 
         n_samples = x.shape[0]
         k_neighbors = min(self.k_neighbors, n_samples-1)
+
+        if self.preprocessor:
+            x, y = self.preprocessor.fit_transform((x, y))
 
         x = x.reshape(n_samples, -1)
         y = y.reshape(n_samples, -1)

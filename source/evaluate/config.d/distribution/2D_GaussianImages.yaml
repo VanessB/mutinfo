@@ -1,0 +1,36 @@
+# @package _global_
+
+distribution:
+  _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
+  base_rv:
+    _target_: mutinfo.distributions.base.CorrelatedUniform
+    X_dim: 2
+    Y_dim: 2
+  mapping:
+    _target_: mutinfo.distributions.tools.cartesian_product_of_functions
+    _args_:
+      - _target_: mutinfo.distributions.images.field.draw_field
+        _partial_: true
+        field_function:
+          _target_: mutinfo.distributions.images.field.symmetric_gaussian_field
+          _partial_: true
+        grid_shape:
+          - ${dimensionality}
+          - ${dimensionality}
+      - _target_: mutinfo.distributions.images.field.draw_field
+        _partial_: true
+        field_function:
+          _target_: mutinfo.distributions.images.field.symmetric_gaussian_field
+          _partial_: true
+        grid_shape:
+          - ${dimensionality}
+          - ${dimensionality}
+
+distribution_key: 2d_gaussian_${dimensionality}x${dimensionality}/MI=${distribution.base_rv.mutual_information}
+
+hydra:
+  sweeper:
+    params:
+      #~distribution: mutual_information # Delete parameter.
+      ++distribution.base_rv.mutual_information: ${default_grid.mutual_information}
+      ++dimensionality: ${default_grid.image_dimensionality}

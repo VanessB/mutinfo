@@ -6,7 +6,7 @@ distribution:
   X_dim: ${dimensionality}
   Y_dim: ${dimensionality}
 
-distribution_key: X_dim=${distribution.X_dim}__Y_dim=${distribution.Y_dim}/dof=${distribution.degrees_of_freedom}
+distribution_key: X_dim=${distribution.X_dim}__Y_dim=${distribution.Y_dim}/dof=${distribution.degrees_of_freedom}/MI=${distribution.mutual_information}
 
 hydra:
   sweeper:
