@@ -3,6 +3,20 @@ from scipy.stats._multivariate import multi_rv_frozen
 
 from collections.abc import Callable
 
+# Useful for `mapped_multi_rv_frozen`.
+def cartesian_product_of_functions(*functions):
+    """
+    Cartesian Product of Functions.
+
+    It is assumed that every function takes a single positional argument.
+    """
+
+    def __prod_fn(*args):
+        """Argument is a tuple with the input for each function."""
+        return tuple(function(x) for function, x in zip(functions, args))
+
+    return __prod_fn
+
 
 class stacked_multi_rv_frozen(multi_rv_frozen):
     def __init__(self, base_rv: multi_rv_frozen, dimensionality: int,

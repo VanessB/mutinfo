@@ -188,10 +188,22 @@ class log_gamma_exponential(multi_rv_frozen):
         dimensionality = self._inverse_shape_parameter.shape[0]
         
         x = numpy.stack(
-            [numpy.zeros(size) if k <= _EPS else loggamma.rvs(c=1.0/k, size=(size,)) for k in self._inverse_shape_parameter],
+            [numpy.zeros(size) if k <= _EPS else loggamma.rvs(c=1.0/k, loc=-digamma(1.0/k), size=(size,)) for k in self._inverse_shape_parameter],
             axis=1
         )
         y = loggamma.rvs(c=1.0, size=(size, dimensionality))
+
+        # Normalize (use approximated moments).
+        # Valid for high values of the shape parameter.
+        # TODO: fix infinity for small values of s.p.
+
+        # Transfered to generation (see `loc`).
+        #x += self._inverse_shape_parameter
+
+        # Unstable for some reason...
+        #x /= numpy.maximum(1.0, self._inverse_shape_parameter)
+        #y /= numpy.maximum(1.0, self._inverse_shape_parameter)
+        
         y -= x
         
         return x, y

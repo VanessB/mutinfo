@@ -34,8 +34,8 @@ def run_test(config : DictConfig) -> None:
         results["mutual_information"] = {"values": []}
 
         for index in trange(config["n_runs"]):
-            random_variable = instantiate(config["distribution"])
-            estimator       = instantiate(config["estimator"])
+            estimator       = instantiate(config["estimator"], _convert_="object")
+            random_variable = instantiate(config["distribution"], _convert_="object")
 
             x, y = random_variable.rvs(config["n_samples"])
             results["mutual_information"]["values"].append(estimator(x, y))
