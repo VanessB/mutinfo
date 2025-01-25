@@ -116,7 +116,7 @@ class MINE(MutualInformationEstimator):
 
         self.optimizer_factory = optimizer_factory
         if self.optimizer_factory is None:
-            self.optimizer_factory = lambda parameters : torch.optim.Adam(parameters, lr=2.0e-3)
+            self.optimizer_factory = lambda parameters : torch.optim.Adam(parameters, lr=1.0e-3)
 
         self.n_train_steps = n_train_steps
         self.train_batch_size = train_batch_size
