@@ -6,6 +6,8 @@ distribution:
     _target_: mutinfo.distributions.base.CorrelatedUniform
     X_dim: 2
     Y_dim: 2
+    randomize_interactions: False
+    shuffle_interactions: True
   mapping:
     _target_: mutinfo.distributions.tools.cartesian_product_of_functions
     _args_:

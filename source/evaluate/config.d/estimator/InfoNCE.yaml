@@ -4,6 +4,11 @@ estimator:
   _target_: mutinfo.estimators.neural.mine.MINE
   n_train_steps: 10000
   device: "cuda"
+  marginalize: "product"
+  loss_factory:
+    _target_: builtins.eval
+    #_args_: ["exec('import torchkld') or (lambda : torchkld.loss.NWJLoss())"]        # Not working for some reason.
+    _args_: ["lambda : eval('exec(\"import torchkld\") or torchkld.loss.InfoNCELoss()')"] # This is actually insane...
   #preprocessor:
   #  _target_: mutinfo.estimators.base.JointTransform
   #  transforms:

@@ -40,9 +40,19 @@ def run_test(config : DictConfig) -> None:
             x, y = random_variable.rvs(config["n_samples"])
             results["mutual_information"]["values"].append(estimator(x, y))
 
+        # All values.
         results["mutual_information"]["values"] = numpy.array(results["mutual_information"]["values"])
+
+        # Mean and standard deviation (might be unstable).
         results["mutual_information"]["mean"]   = float(numpy.mean(results["mutual_information"]["values"]))
         results["mutual_information"]["std"]    = float(numpy.std(results["mutual_information"]["values"]))
+
+        # Meduian and interquartile range (more robust to the outliers).
+        results["mutual_information"]["median"] = float(numpy.median(results["mutual_information"]["values"]))
+        results["mutual_information"]["half_interquartile_range"] = float(
+            numpy.quantile(results["mutual_information"]["values"], 0.75) -
+            numpy.quantile(results["mutual_information"]["values"], 0.25)
+        )
 
         path = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
