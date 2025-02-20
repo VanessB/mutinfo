@@ -1,0 +1,9 @@
+# @package _global_
+
+estimator:
+  _target_: mutinfo.estimators.knn.WKL
+
+hydra:
+  sweeper:
+    params:
+      ++estimator.k_neighbors: 1, 5, 9, 13, 17

@@ -3,6 +3,9 @@ import numpy
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils.validation import check_is_fitted, _is_fitted
 
+from collections.abc import Callable
+from typing import Any
+
 
 class JointTransform(BaseEstimator, TransformerMixin):
     """
@@ -39,7 +42,7 @@ class MutualInformationEstimator(BaseEstimator):
 
     def __init__(self, preprocessor: TransformerMixin=None) -> None:
         self.preprocessor = preprocessor
-    
+
     def _check_arguments(self, x: numpy.ndarray, y: numpy.ndarray) -> None:
         """
         Check samples `x` and `y`.
@@ -55,7 +58,20 @@ class MutualInformationEstimator(BaseEstimator):
         if y.shape[0] != x.shape[0]:
             raise ValueError("The number of samples in `x` and `y` must be equal")
 
+    def check_arguments(
+        function: Callable[[numpy.ndarray, numpy.ndarray], Any]
+    ) -> Callable[[numpy.ndarray, numpy.ndarray], Any]:
+        """
+        Wrapper for checking arguments.
+        """
 
+        def wrapped(self, x: numpy.ndarray, y: numpy.ndarray, *args, **kwargs) -> Any:
+            self._check_arguments(x, y)
+            return function(self, x, y, *args, **kwargs)
+
+        return wrapped
+        
+    @check_arguments
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray) -> float:
         """
         Estimate the value of mutual information between two random vectors
@@ -65,8 +81,6 @@ class MutualInformationEstimator(BaseEstimator):
         ----------
         x, y : array_like
             Samples from corresponding random vectors.
-        std : bool
-            Calculate standard deviation.
 
         Returns
         -------

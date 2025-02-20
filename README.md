@@ -17,7 +17,7 @@ as well as some parametric and non-parametric estimators.
 ### Estimators
 
 - [x] Kraskov-Stogbauer-Grassberger
-- [ ] 3-Weighted Kozachenko-Leonenko
+- [X] Weighted Kozachenko-Leonenko
 - [x] k-Sliced mutual information estimator
 
 ## Getting started

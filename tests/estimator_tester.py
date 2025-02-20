@@ -18,4 +18,4 @@ def run_tests(estimator_factory, distribution_factory,
                 estimated_mutual_information = estimator(x, y)
 
                 assert numpy.allclose(mutual_information, estimated_mutual_information, atol=atol, rtol=rtol), \
-                message_on_fail + f"({X_dimension}, {Y_dimension}, {mutual_information})"
+                message_on_fail + f"({X_dimension}, {Y_dimension}, {mutual_information}, {estimated_mutual_information}, {estimator})"

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2025.02.1
+- Weighted Kozachenko-Leonenko k-NN based differential entropy and mutual information estimator added.
+
 ## 2024.10.1
 
 - Added uniformly quantized random variable (a pair of $X$ and $f(X)$, where $f(X)$ is as close to a discrete uniform random variable as possible).

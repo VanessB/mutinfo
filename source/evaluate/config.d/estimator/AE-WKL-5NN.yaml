@@ -1,0 +1,10 @@
+# @package _global_
+
+estimator:
+  _target_: mutinfo.estimators.knn.WKL
+  k_neighbors: 5
+  preprocessor:
+    _target_: mutinfo.estimators.neural.compression.AutoencoderPreprocessing
+    autoencoder_factory:
+      _target_: mutinfo.estimators.neural.compression.GenericImageAE
+      _partial_: True
