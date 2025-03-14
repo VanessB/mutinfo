@@ -131,9 +131,6 @@ class KSG(kNN_based):
         n_samples = x.shape[0]
         k_neighbors = min(self.k_neighbors, n_samples-1)
 
-        if self.preprocessor:
-            x, y = self.preprocessor.fit_transform((x, y))
-
         x = x.reshape(n_samples, -1)
         y = y.reshape(n_samples, -1)
         x_y = numpy.concatenate([x, y], axis=-1)
@@ -353,9 +350,6 @@ class WKL(kNN_based):
         """
 
         n_samples = x.shape[0]
-
-        if self.preprocessor:
-            x, y = self.preprocessor.fit_transform((x, y))
 
         x = x.reshape(n_samples, -1)
         y = y.reshape(n_samples, -1)
