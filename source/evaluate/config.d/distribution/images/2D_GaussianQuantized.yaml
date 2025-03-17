@@ -3,11 +3,12 @@
 distribution:
   _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
   base_rv:
-    _target_: mutinfo.distributions.base.CorrelatedUniform
-    X_dim: 2
-    Y_dim: 2
+    _target_: mutinfo.distributions.base.UniformlyQuantized
+    dimensionality: 2
+    base_rv:
+      _target_: scipy.stats.uniform
+    normalize: true
     randomize_interactions: false
-    shuffle_interactions: true
   mapping:
     _target_: mutinfo.distributions.tools.cartesian_product_of_functions
     _args_:

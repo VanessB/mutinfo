@@ -3,7 +3,7 @@ import numpy
 
 from scipy.optimize import bisect
 from scipy.special import xlogy
-from scipy.stats._distn_infrastructure import rv_frozen
+from scipy.stats._distn_infrastructure import rv_frozen, rv_sample
 from scipy.stats._multivariate import multi_rv_frozen
 
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value, _check_quantile_value
@@ -53,6 +53,59 @@ def entropy_to_probabilities(entropy: float) -> numpy.ndarray:
     return probabilities
 
 
+class splitted_rv_sample(rv_sample):
+    """
+    Frozen discrete distribution with known mutual information.
+    """
+    
+    def __init__(
+        self,
+        values: tuple[numpy.ndarray, numpy.ndarray],
+        split_dim: int=1,
+        *args,
+        **kwargs
+    ) -> None:
+        """
+        Create a frozen discrete distribution with known mutual information.
+
+        Parameters
+        ----------
+        values : tuple of two array_like, optional
+            
+        split_dim : int
+            Dimension used to split the vector.
+        """
+
+        super().__init__(values=values, *args, **kwds)
+
+        if split_dim < 1:
+            raise ValueError(f"Expected `split_dim` to be 1 or greater, but got {split_dim}")
+
+        if len(values[1].shape) < split_dim:
+            raise ValueError(
+                f"Expected the dimensionality of the probability tensor to be breater then `split_dim`, but got {len(values[1].shape)} < {split_dim}"
+            )
+
+    @property
+    def mutual_information(self) -> float:
+        """
+        Mutual information.
+
+        Returns
+        -------
+        mutual_information : float
+            Mutual information.
+        """
+        
+        x_y_probabilities = self._ctor_param["values"][1]
+        x_probabilities   = x_y_probabilities.sum(axis=range(self.split_dim))
+        y_probabilities   = x_y_probabilities.sum(axis=range(self.split_dim, len(x_y_probabilities.shape)))
+        
+        return xlogy(x_y_probabilities, x_y_probabilities).sum() \
+            - xlogy(x_probabilities, x_probabilities).sum() \
+            - xlogy(y_probabilities, y_probabilities).sum()
+
+
 class quantized_rv(multi_rv_frozen):
     """
     Frozen quantized distribution with known mutual information.
@@ -62,6 +115,7 @@ class quantized_rv(multi_rv_frozen):
         self,
         base_rv: rv_frozen,
         quantiles: numpy.ndarray,
+        normalize: bool=False,
         *args, **kwargs
     ) -> None:
         """
@@ -73,6 +127,9 @@ class quantized_rv(multi_rv_frozen):
             Base distribution.
         quantiles : array_like
             Quantiles to be used to assign labels.
+        normalize : bool, optional
+            Divide the labels by the total number of possible outcomes.
+            Default: False
         """
         
         super().__init__(*args, **kwargs)
@@ -88,7 +145,9 @@ class quantized_rv(multi_rv_frozen):
         _check_quantile_value(quantiles, "quantiles")
 
         self._quantiles = numpy.sort(quantiles)
-        self._dist = base_rv        
+        self._dist = base_rv
+
+        self.normalize = normalize
 
     def rvs(self, *args, **kwargs):
         """
@@ -107,6 +166,9 @@ class quantized_rv(multi_rv_frozen):
         
         x = self._dist.rvs(*args, **kwargs)
         y = numpy.sum(self._dist.cdf(x)[:,numpy.newaxis,...] > self._quantiles.reshape((1,-1) + (1,) * (len(x.shape)-1)), axis=1)
+
+        if self.normalize:
+            y = y / self._quantiles.shape[0]
         
         return x, y
 

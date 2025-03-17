@@ -4,7 +4,7 @@ import numpy
 from scipy.special import xlogy
 from scipy.stats import norm, uniform
 
-from mutinfo.distributions.base import quantized, UniformlyQuantized
+from mutinfo.distributions.base import discrete, UniformlyQuantized
 
 
 def test_entropy_and_quantiles():
@@ -15,12 +15,12 @@ def test_entropy_and_quantiles():
 
     for n_labels in range(1, 100):
         true_entropy = max(0.0, math.log(n_labels) - 1.0e-16)
-        probabilities = quantized.entropy_to_probabilities(true_entropy)
+        probabilities = discrete.entropy_to_probabilities(true_entropy)
         assert numpy.allclose(numpy.full(n_labels, 1.0 / n_labels), probabilities), \
         "Distributions with log(integer) entropy should be uniform."
 
     for true_entropy in numpy.linspace(0.0, 10.0, 101):
-        probabilities = quantized.entropy_to_probabilities(true_entropy)
+        probabilities = discrete.entropy_to_probabilities(true_entropy)
         entropy = -numpy.sum(xlogy(probabilities, probabilities))
         assert abs(entropy - true_entropy) < 1.0e-6, \
         "Entropy to probabilities conversion is inconsistent."

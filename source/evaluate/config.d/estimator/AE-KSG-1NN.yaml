@@ -1,0 +1,12 @@
+# @package _global_
+
+estimator:
+  _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
+  estimator:
+    _target_: mutinfo.estimators.knn.KSG
+    k_neighbors: 1
+  transform:
+    _target_: mutinfo.estimators.neural.compression.AutoencoderPreprocessing
+    autoencoder_factory:
+      _target_: mutinfo.estimators.neural.compression.GenericAutoencoderConv2d
+      _partial_: True

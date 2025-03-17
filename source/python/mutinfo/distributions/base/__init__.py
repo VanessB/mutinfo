@@ -5,9 +5,9 @@ from scipy.stats import ortho_group
 from scipy.stats._distn_infrastructure import rv_frozen
 from scipy.stats._multivariate import multi_rv_frozen
 
+from . import discrete
 from . import gamma_exponential
 from . import normal
-from . import quantized
 from . import smoothed_uniform
 from . import student
 from .. import tools
@@ -265,8 +265,9 @@ def UniformlyQuantized(
     mutual_information: float,
     dimensionality: int,
     base_rv: rv_frozen,
+    normalize: bool=False,
     randomize_interactions: bool=False
-) -> quantized.quantized_rv:
+) -> discrete.quantized_rv:
     """
     Create a two-dimensional mixed-type distribution
     given the value of the mutual information between the components.
@@ -279,6 +280,9 @@ def UniformlyQuantized(
         Dimensionality of the vectors.
     base_rv : scipy.stats._multivariate.multi_rv_frozen
         Base univariate distribution for the first component.
+    normalize : bool, optional
+        Divide the labels by the total number of possible outcomes.
+        Default: False
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
         (the total value of mutual information stays fixed).
@@ -294,10 +298,10 @@ def UniformlyQuantized(
     if randomize_interactions:
         raise NotImplementedError("Interaction randomization is not implemented for `UniformlyQuantized` yet.")
 
-    probabilities = quantized.entropy_to_probabilities(mutual_information / dimensionality)
+    probabilities = discrete.entropy_to_probabilities(mutual_information / dimensionality)
     quantiles = numpy.cumsum(probabilities)[:-1]
 
-    return tools.stacked_multi_rv_frozen(quantized.quantized_rv(base_rv, quantiles), dimensionality)
+    return tools.stacked_multi_rv_frozen(discrete.quantized_rv(base_rv, quantiles, normalize), dimensionality)
 
 
 def SmoothedUniform(
