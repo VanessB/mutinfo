@@ -5,6 +5,8 @@ import torchkld
 
 from collections.abc import Callable
 
+from sklearn.model_selection import train_test_split
+
 from ..base import MutualInformationEstimator
 
 _EPS = 1.0e-6
@@ -17,9 +19,8 @@ class _MINE_backbone(torchkld.mutual_information.MINE):
         self.network = network
         self.concatenate = concatenate
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, marginalize: bool=False) -> torch.Tensor:
-        x, y = super().forward(x, y, marginalize)
-
+    @torchkld.mutual_information.MINE.marginalizable
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.network(torch.concat([x, y], dim=1)) if self.concatenate else self.network(x, y)
 
 
@@ -59,9 +60,8 @@ class GenericConv2dClassifier(torchkld.mutual_information.MINE):
             torch.nn.Linear(hidden_dimension, 1)
         )
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, marginalize: bool=False) -> torch.tensor:
-        x, y = super().forward(x, y, marginalize)
-
+    @torchkld.mutual_information.MINE.marginalizable
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:
         x = x.view(x.shape[0], -1, x.shape[-2], x.shape[-1])
         y = y.view(y.shape[0], -1, y.shape[-2], y.shape[-1])
             
@@ -92,6 +92,7 @@ class MINE(MutualInformationEstimator):
         n_train_steps: int=10000,
         train_batch_size: int=512,
         estimate_batch_size: int=512,
+        estimate_fraction: float=0.5,
         marginalize: str="permute",
         device: str="cpu",
         **kwargs,
@@ -121,6 +122,7 @@ class MINE(MutualInformationEstimator):
         self.n_train_steps = n_train_steps
         self.train_batch_size = train_batch_size
         self.estimate_batch_size = estimate_batch_size
+        self.estimate_fraction = estimate_fraction
         self.marginalize = marginalize
         self.device = device
 
@@ -142,13 +144,20 @@ class MINE(MutualInformationEstimator):
 
         self._check_arguments(x, y)
 
-        # Preprocess.
-        if self.preprocessor:
-            x, y = self.preprocessor.fit_transform((x, y))
+        if self.estimate_fraction is None:
+            train_x, estimate_x, train_y, estimate_y = x, y, x, y
+        else:
+            train_x, estimate_x, train_y, estimate_y = train_test_split(x, y, test_size=self.estimate_fraction)
+            
         
         train_dataset = torch.utils.data.TensorDataset(
-            torch.tensor(x, dtype=torch.float32),
-            torch.tensor(y, dtype=torch.float32),
+            torch.tensor(train_x, dtype=torch.float32),
+            torch.tensor(train_y, dtype=torch.float32),
+        )
+
+        estimate_dataset = torch.utils.data.TensorDataset(
+            torch.tensor(train_x, dtype=torch.float32),
+            torch.tensor(train_y, dtype=torch.float32),
         )
 
         train_dataloader = torch.utils.data.DataLoader(
@@ -159,7 +168,7 @@ class MINE(MutualInformationEstimator):
         )
 
         estimate_dataloader = torch.utils.data.DataLoader(
-            train_dataset,
+            estimate_dataset,
             batch_size=self.estimate_batch_size,
             shuffle=False,
             pin_memory=True,
