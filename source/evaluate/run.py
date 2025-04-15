@@ -19,7 +19,8 @@ def ndarray_representer(dumper: yaml.Dumper, array: numpy.ndarray) -> yaml.Node:
 @hydra.main(version_base=None, config_path="./config.d", config_name="config")
 def run_test(config : DictConfig) -> None:
     try:
-        bebeziana.seed_everything(config["seed"], to_be_seeded=config["to_be_seeded"])
+        # Switched to reseeding each run for better reproducibility.
+        #bebeziana.seed_everything(config["seed"], to_be_seeded=config["to_be_seeded"])
 
         # Resolving some parts of the config and storing them separately for later post-processing.
         setup = {}
@@ -34,6 +35,8 @@ def run_test(config : DictConfig) -> None:
         results["mutual_information"] = {"values": []}
 
         for index in trange(config["n_runs"]):
+            bebeziana.seed_everything(config["seed"] + index, to_be_seeded=config["to_be_seeded"])
+
             estimator       = instantiate(config["estimator"], _convert_="object")
             random_variable = instantiate(config["distribution"], _convert_="object")
 

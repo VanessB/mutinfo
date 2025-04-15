@@ -3,6 +3,7 @@
 estimator:
   _target_: mutinfo.estimators.neural.mine.MINE
   n_train_steps: 10000
+  estimate_fraction: null # Do not split.
   device: "cuda"
   marginalize: "product"
   loss_factory:
@@ -14,6 +15,6 @@ estimator:
   #  transforms:
   #  - _target_: sklearn.preprocessing.RobustScaler
   #  - _target_: sklearn.preprocessing.RobustScaler
-  backbone_factory:
-    _target_: mutinfo.estimators.neural.mine.GenericConv2dClassifier
-    _partial_: true
+  #backbone_factory:
+  #  _target_: mutinfo.estimators.neural.mine.GenericConv2dClassifier
+  #  _partial_: true
