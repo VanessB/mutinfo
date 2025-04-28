@@ -24,64 +24,6 @@ class _MINE_backbone(torchkld.mutual_information.MINE):
         return self.network(torch.concat([x, y], dim=1)) if self.concatenate else self.network(x, y)
 
 
-class GenericConv2dClassifier(torchkld.mutual_information.MINE):
-    def __init__(self, X_shape, Y_shape, n_filters: int=16, hidden_dimension: int=128) -> None:
-        super().__init__()
-
-        if (not len(X_shape) in [3, 4]) or (not len(Y_shape) in [3, 4]):
-            raise ValueError("Inputs shpuld be batches of images.")
-
-        if (X_shape[-2] != X_shape[-1]) or (Y_shape[-2] != Y_shape[-1]):
-            raise ValueError("Input images have to be square.")
-
-        n_X_channels = X_shape[1] if (len(X_shape) == 4) else 1
-        n_Y_channels = Y_shape[1] if (len(Y_shape) == 4) else 1
-        log2_remaining_size = 2
-        
-        # Convolution layers.
-        n_X_convolutions = int(math.floor(math.log2(X_shape[-1]))) - log2_remaining_size
-        self.X_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_X_channels, n_filters, kernel_size=3, padding='same')] + \
-                [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_X_convolutions - 1)])
-            
-        n_Y_convolutions = int(math.floor(math.log2(Y_shape[-1]))) - log2_remaining_size
-        self.Y_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_Y_channels, n_filters, kernel_size=3, padding='same')] + \
-                [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_Y_convolutions - 1)])
-
-        self.activation = torch.nn.LeakyReLU()
-        self.maxpool2d = torch.nn.MaxPool2d((2,2))
-
-        # Dense part.
-        remaining_dim = n_filters * 2**(2*log2_remaining_size)
-        self.dense = torch.nn.Sequential(
-            torch.nn.Linear(remaining_dim + remaining_dim, hidden_dimension),
-            torch.nn.LeakyReLU(),
-            torch.nn.Linear(hidden_dimension, hidden_dimension),
-            torch.nn.LeakyReLU(),
-            torch.nn.Linear(hidden_dimension, 1)
-        )
-
-    @torchkld.mutual_information.MINE.marginalizable
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:
-        x = x.view(x.shape[0], -1, x.shape[-2], x.shape[-1])
-        y = y.view(y.shape[0], -1, y.shape[-2], y.shape[-1])
-            
-        # Convolution layers.
-        for conv2d in self.X_convolutions:
-            x = conv2d(x)
-            x = self.maxpool2d(x)
-            x = self.activation(x)
-            
-        for conv2d in self.Y_convolutions:
-            y = conv2d(y)
-            y = self.maxpool2d(y)
-            y = self.activation(y)
-
-        x = x.flatten(start_dim=1)
-        y = y.flatten(start_dim=1)
-        
-        return self.dense(torch.cat((x, y), dim=1))
-
-
 class MINE(MutualInformationEstimator):
     def __init__(
         self,
@@ -100,16 +42,8 @@ class MINE(MutualInformationEstimator):
         super().__init__(**kwargs)
 
         self.backbone_factory = backbone_factory
-        if backbone_factory is None:
-            self.backbone_factory = lambda X_shape, Y_shape : _MINE_backbone(
-                torch.nn.Sequential(
-                    torch.nn.Linear(X_shape[-1] + Y_shape[-1], 128),
-                    torch.nn.LeakyReLU(),
-                    torch.nn.Linear(128, 128),
-                    torch.nn.LeakyReLU(),
-                    torch.nn.Linear(128, 1),
-                )
-            )
+        if self.backbone_factory is None:
+            self.backbone_factory = GenericMLPClassifier
 
         self.loss_factory = loss_factory
         if self.loss_factory is None:
@@ -145,7 +79,7 @@ class MINE(MutualInformationEstimator):
         self._check_arguments(x, y)
 
         if self.estimate_fraction is None:
-            train_x, estimate_x, train_y, estimate_y = x, y, x, y
+            train_x, estimate_x, train_y, estimate_y = x, x, y, y
         else:
             train_x, estimate_x, train_y, estimate_y = train_test_split(x, y, test_size=self.estimate_fraction)
             
@@ -156,8 +90,8 @@ class MINE(MutualInformationEstimator):
         )
 
         estimate_dataset = torch.utils.data.TensorDataset(
-            torch.tensor(train_x, dtype=torch.float32),
-            torch.tensor(train_y, dtype=torch.float32),
+            torch.tensor(estimate_x, dtype=torch.float32),
+            torch.tensor(estimate_y, dtype=torch.float32),
         )
 
         train_dataloader = torch.utils.data.DataLoader(
@@ -199,4 +133,83 @@ class MINE(MutualInformationEstimator):
             marginalize=self.marginalize
         )
 
-        return estimated_MI
+        return max(estimated_MI, 0.0)
+
+
+def GenericMLPClassifier(
+    X_shape: tuple,
+    Y_shape: tuple,
+    hidden_dim: int=128
+) -> _MINE_backbone:
+    return _MINE_backbone(
+        torch.nn.Sequential(
+            torch.nn.Linear(X_shape[-1] + Y_shape[-1], hidden_dim),
+            torch.nn.LeakyReLU(),
+            torch.nn.Linear(hidden_dim, hidden_dim),
+            torch.nn.LeakyReLU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+    )
+
+class GenericConv2dClassifier(torchkld.mutual_information.MINE):
+    def __init__(
+        self,
+        X_shape: tuple,
+        Y_shape: tuple,
+        n_filters: int=16,
+        hidden_dim: int=128
+    ) -> None:
+        super().__init__()
+
+        if (not len(X_shape) in [3, 4]) or (not len(Y_shape) in [3, 4]):
+            raise ValueError("Inputs shpuld be batches of images.")
+
+        if (X_shape[-2] != X_shape[-1]) or (Y_shape[-2] != Y_shape[-1]):
+            raise ValueError("Input images have to be square.")
+
+        n_X_channels = X_shape[1] if (len(X_shape) == 4) else 1
+        n_Y_channels = Y_shape[1] if (len(Y_shape) == 4) else 1
+        log2_remaining_size = 2
+        
+        # Convolution layers.
+        n_X_convolutions = int(math.floor(math.log2(X_shape[-1]))) - log2_remaining_size
+        self.X_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_X_channels, n_filters, kernel_size=3, padding='same')] + \
+                [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_X_convolutions - 1)])
+            
+        n_Y_convolutions = int(math.floor(math.log2(Y_shape[-1]))) - log2_remaining_size
+        self.Y_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_Y_channels, n_filters, kernel_size=3, padding='same')] + \
+                [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_Y_convolutions - 1)])
+
+        self.activation = torch.nn.LeakyReLU()
+        self.maxpool2d = torch.nn.MaxPool2d((2,2))
+
+        # Dense part.
+        remaining_dim = n_filters * 2**(2*log2_remaining_size)
+        self.dense = torch.nn.Sequential(
+            torch.nn.Linear(remaining_dim + remaining_dim, hidden_dim),
+            torch.nn.LeakyReLU(),
+            torch.nn.Linear(hidden_dim, hidden_dim),
+            torch.nn.LeakyReLU(),
+            torch.nn.Linear(hidden_dim, 1)
+        )
+
+    @torchkld.mutual_information.MINE.marginalizable
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:
+        x = x.view(x.shape[0], -1, x.shape[-2], x.shape[-1])
+        y = y.view(y.shape[0], -1, y.shape[-2], y.shape[-1])
+            
+        # Convolution layers.
+        for conv2d in self.X_convolutions:
+            x = conv2d(x)
+            x = self.maxpool2d(x)
+            x = self.activation(x)
+            
+        for conv2d in self.Y_convolutions:
+            y = conv2d(y)
+            y = self.maxpool2d(y)
+            y = self.activation(y)
+
+        x = x.flatten(start_dim=1)
+        y = y.flatten(start_dim=1)
+        
+        return self.dense(torch.cat((x, y), dim=1))

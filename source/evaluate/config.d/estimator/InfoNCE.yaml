@@ -1,20 +1,39 @@
 # @package _global_
 
 estimator:
-  _target_: mutinfo.estimators.neural.mine.MINE
-  n_train_steps: 10000
-  estimate_fraction: null # Do not split.
-  device: "cuda"
-  marginalize: "product"
-  loss_factory:
-    _target_: builtins.eval
-    #_args_: ["exec('import torchkld') or (lambda : torchkld.loss.NWJLoss())"]        # Not working for some reason.
-    _args_: ["lambda : eval('exec(\"import torchkld\") or torchkld.loss.InfoNCELoss()')"] # This is actually insane...
-  #preprocessor:
-  #  _target_: mutinfo.estimators.base.JointTransform
-  #  transforms:
-  #  - _target_: sklearn.preprocessing.RobustScaler
-  #  - _target_: sklearn.preprocessing.RobustScaler
-  #backbone_factory:
-  #  _target_: mutinfo.estimators.neural.mine.GenericConv2dClassifier
-  #  _partial_: true
+  _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
+  estimator:
+    _target_: mutinfo.estimators.parametric.mine.MINE
+    backbone_factory:
+      _target_: mutinfo.estimators.parametric.mine.GenericMLPClassifier
+      _partial_: true
+      hidden_dim: 128
+    optimizer_factory:
+      _target_: torch.optim.Adam
+      _partial_: true
+      lr: 1.0e-3
+    loss_factory:
+      _target_: torchkld.loss.InfoNCELoss
+      _partial_: true
+      biased: false
+      ema_multiplier: 1.0e-2
+    n_train_steps: 10000
+    train_batch_size: 512
+    estimate_batch_size: 512
+    estimate_fraction: 0.5 # `null` for no splitting.
+    device: "cuda"
+  transform:
+    _target_: mutinfo.estimators.base.JointTransform
+    transforms:
+    - _target_: sklearn.preprocessing.RobustScaler
+    - _target_: sklearn.preprocessing.RobustScaler
+
+parameters_counter:
+  _target_: builtins.eval
+  _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.estimator.backbone_factory(x.shape, y.shape).parameters())"]
+
+hydra:
+  sweeper:
+    params:
+      ++estimator.estimator.estimate_fraction: null, 0.5
+      ++estimator.estimator.backbone_factory.hidden_dim: 16, 32, 64, 128

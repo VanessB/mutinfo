@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: MUTINFO
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Ivan
+    family-names: Butakov
+  - given-names: Sofia
+    family-names: Malanchuk
+  - given-names: Anna
+    family-names: Neopryatnaya
+  - given-names: Alexander
+    family-names: Tolmachev
+  - given-names: Alexey
+    family-names: Frolov
+  - given-names: Alberto
+    family-names: Foresti
+  - given-names: Giulio
+    family-names: Franzese
+repository-code: 'https://github.com/VanessB/mutinfo'
+abstract: >-
+  Mutual information estimators and benchmarks.
+
+
+  This package provides you with mutual information
+  estimation benchmarks and tests, as well as some
+  parametric and non-parametric estimators.
+keywords:
+  - information theory
+  - mutual information
+  - benchmarks
+license: GPL-3.0

@@ -1,5 +1,6 @@
 """
 Butakov I.D., Malanchuk S.V., Neopryatnaya A.M., Tolmachev A.D., Frolov A.A.
+Foresti A., Franzese G.
 Mutual information estimation benchmarks and tests.
 """
 
