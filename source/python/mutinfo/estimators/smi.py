@@ -1,13 +1,15 @@
 import numpy
-import math
 
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils.validation import check_is_fitted, _is_fitted
 
-from .base import MutualInformationEstimator, TransformedMutualInformationEstimator
+from sklearn.decomposition import PCA
+from sklearn.cross_decomposition import CCA
+
+from .base import MutualInformationEstimator, TransformedMutualInformationEstimator, JointTransform
 
 
-class slicing_based(BaseEstimator, TransformerMixin):
+class slicing_based(JointTransform):
     """
     Base class for slicing-based transforms.
     """
@@ -31,35 +33,36 @@ class slicing_based(BaseEstimator, TransformerMixin):
             If one of the argument should not be projected, use `None`.
         """
 
+        super().__init__([None])
+
         #if not (isinstance(projection_dim, int) or isinstance(projection_dim, tuple)):
         #    raise TypeError("Expected `projection_dim` to be of type `int` or `tuple`.")
             
         self.projection_dim = projection_dim
-        self.projectors = None
 
-    @_fit_context(prefer_skip_nested_validation=True)
-    def fit(self, X, y=None):
-        raise NotImplementedError
+    def fit_projetion_dim(self, X) -> tuple[int]:
+        if not isinstance(X, tuple):
+            raise ValueError("Expected `X` to be of type `tuple`")
+        
+        if isinstance(self.projection_dim, int):
+            projection_dim = (self.projection_dim,) * len(X)
+        elif len(X) != len(self.projection_dim):
+            raise ValueError("Expected `X` and `self.projection_dim` to be of the same length")
+        else:
+            projection_dim = self.projection_dim
 
-    def transform(self, X) -> tuple:
-        check_is_fitted(self)
-
-        return tuple(x if projector is None else x @ projector for x, projector in zip(X, self.projectors))
-
-    def __sklearn_is_fitted__(self) -> bool:
-        return not (self.projectors is None)
+        return projection_dim
 
 
-class RandomSlicing(slicing_based):
+class RandomOrthogonalProjector(BaseEstimator, TransformerMixin):
     """
-    Transform for the k-Sliced mutual information estimator.
-
-    References
-    ----------
-    .. [1] Z. Goldfeld, K. Greenewald and T. Nuradha, "k-Sliced
-           Mutual Information: A Quantitative Study of Scalability
-           with Dimension". NeurIPS, 2022.
+    Random orthogonal projector.
     """
+
+    def __init__(self, projection_dim: int) -> None:
+        self.projection_dim = projection_dim
+        self.mean = None
+        self.projector = None
 
     @staticmethod
     def generate_random_projection_matrix(dim: int, projection_dim: int) -> numpy.ndarray:
@@ -87,22 +90,85 @@ class RandomSlicing(slicing_based):
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y=None):
-        if not isinstance(X, tuple):
-            raise ValueError("Expected `X` to be of type `tuple`")
+        self.projector = RandomOrthogonalProjector.generate_random_projection_matrix(X.shape[-1], self.projection_dim)
+        self.mean = (X @ self.projector).mean(axis=0)
+
+    def transform(self, X) -> numpy.ndarray:
+        check_is_fitted(self)
+
+        return X @ self.projector - self.mean
+
+    def __sklearn_is_fitted__(self) -> bool:
+        return (not self.projector is None) and (not self.mean is None)
+
+
+class RandomSlicing(slicing_based):
+    """
+    Transform for the k-Sliced Mutual Information estimator.
+
+    References
+    ----------
+    .. [1] Z. Goldfeld, K. Greenewald and T. Nuradha, "k-Sliced
+           Mutual Information: A Quantitative Study of Scalability
+           with Dimension". NeurIPS, 2022.
+    """
+
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y=None):
+        projection_dim = self.fit_projetion_dim(X)
         
-        if isinstance(self.projection_dim, int):
-            projection_dim = (self.projection_dim,) * len(X)
-        elif len(X) != len(self.projection_dim):
-            raise ValueError("Expected `X` and `self.projection_dim` to be of the same length")
-        else:
-            projection_dim = self.projection_dim
-        
-        self.projectors = [
-            None if dim is None else RandomSlicing.generate_random_projection_matrix(x.shape[-1], dim)
+        self.transforms = [
+            None if dim is None else RandomOrthogonalProjector(min(dim, x.shape[-1]))
             for x, dim in zip(X, projection_dim)
         ]
 
-        return self
+        return super().fit(X, y)
+
+
+class PrincipleComponentSlicing(slicing_based):
+    """
+    Transform for the Principle Component Sliced Mutual Information estimator.
+
+    References
+    ----------
+    .. [1] TODO
+    """
+
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y=None):
+        projection_dim = self.fit_projetion_dim(X)
+        
+        self.transforms = [
+            None if dim is None else PCA(n_components=min(dim, x.shape[-1]), whiten=True)
+            for x, dim in zip(X, projection_dim)
+        ]
+
+        return super().fit(X, y)
+
+
+class CanonicalCorrelationSlicing(CCA):
+    """
+    Transform for the Canonical Correlation Sliced Mutual Information estimator.
+
+    References
+    ----------
+    .. [1] TODO
+    """
+
+    _parameter_constraints: dict = {
+        "projection_dim": [int]
+    }
+
+    def __init__(self, projection_dim: int=1) -> None:
+        self.projection_dim = projection_dim
+        super().__init__(n_components=projection_dim)
+
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y=None):
+        return super().fit(*X)
+
+    def transform(self, X, y=None):
+        return super().transform(*X)
 
     
 def SMI(
@@ -135,4 +201,58 @@ def SMI(
         estimator=estimator,
         transform=RandomSlicing(projection_dim),
         n_transform_samples=n_projection_samples
+    )
+
+
+def PCMI(
+    estimator: MutualInformationEstimator,
+    projection_dim: int=1,
+) -> None:
+    """
+    Create a Principle Component Mutual Information estimator
+
+    Parameters
+    ----------
+    estimator : MutualInformationEstimator
+        Base estimator used to estimate MI between projections.
+    projection_dim : int or tuple of ints, optional
+        Dimensionality of the projection subspace. Use a tuple of ints
+        to specify the dimensionalities for different inputs separately.
+        If one of the argument should not be projected, use `None`.
+
+    References
+    ----------
+    .. [1] TODO
+    """
+
+    return TransformedMutualInformationEstimator(
+        estimator=estimator,
+        transform=PrincipleComponentSlicing(projection_dim)
+    )
+
+
+def CCMI(
+    estimator: MutualInformationEstimator,
+    projection_dim: int=1,
+) -> None:
+    """
+    Create a Canonical Correlation Mutual Information estimator
+
+    Parameters
+    ----------
+    estimator : MutualInformationEstimator
+        Base estimator used to estimate MI between projections.
+    projection_dim : int, optional
+        Dimensionality of the projection subspace. Use a tuple of ints
+        to specify the dimensionalities for different inputs separately.
+        If one of the argument should not be projected, use `None`.
+
+    References
+    ----------
+    .. [1] TODO
+    """
+
+    return TransformedMutualInformationEstimator(
+        estimator=estimator,
+        transform=CanonicalCorrelationSlicing(projection_dim)
     )
