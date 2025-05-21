@@ -59,6 +59,10 @@ class RandomOrthogonalProjector(BaseEstimator, TransformerMixin):
     Random orthogonal projector.
     """
 
+    _parameter_constraints: dict = {
+        "projection_dim": [int]
+    }
+
     def __init__(self, projection_dim: int) -> None:
         self.projection_dim = projection_dim
         self.mean = None
@@ -92,6 +96,8 @@ class RandomOrthogonalProjector(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         self.projector = RandomOrthogonalProjector.generate_random_projection_matrix(X.shape[-1], self.projection_dim)
         self.mean = (X @ self.projector).mean(axis=0)
+
+        return self
 
     def transform(self, X) -> numpy.ndarray:
         check_is_fitted(self)
@@ -146,7 +152,7 @@ class PrincipleComponentSlicing(slicing_based):
         return super().fit(X, y)
 
 
-class CanonicalCorrelationSlicing(CCA):
+class CanonicalCorrelationSlicing(BaseEstimator, TransformerMixin):
     """
     Transform for the Canonical Correlation Sliced Mutual Information estimator.
 
@@ -161,14 +167,20 @@ class CanonicalCorrelationSlicing(CCA):
 
     def __init__(self, projection_dim: int=1) -> None:
         self.projection_dim = projection_dim
-        super().__init__(n_components=projection_dim)
+        self.cca = None
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y=None):
-        return super().fit(*X)
+        projection_dim = min(self.projection_dim, X[0].shape[-1], X[1].shape[-1])
+        self.cca = CCA(projection_dim).fit(*X)
+        
+        return self
 
     def transform(self, X, y=None):
-        return super().transform(*X)
+        return self.cca.transform(*X)
+
+    def __sklearn_is_fitted__(self) -> bool:
+        return (not self.cca is None) and _is_fitted(self.cca)
 
     
 def SMI(
