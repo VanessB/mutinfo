@@ -3,7 +3,7 @@
 estimator:
   _target_: mutinfo.estimators.neural.mine.MINE
   n_train_steps: 10000
-  estimate_fraction: null # Do not split.
+  estimate_fraction: 0.5
   device: "cuda"
   #preprocessor:
   #  _target_: mutinfo.estimators.base.JointTransform
