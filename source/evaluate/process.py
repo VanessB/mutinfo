@@ -1,4 +1,4 @@
-#import bebeziana
+import bebeziana
 import yaml
 import pandas
 import re
@@ -17,7 +17,8 @@ distribution_names = {
 estimator_data_paths = {
     "KSG":     Path("./outputs/KSG.2025.04.1"),
     "WKL":     Path("./outputs/WKL.2025.04.1"),
-    "MINE":    Path("./outputs/MINE.2025.04.3"),
+    "MINE":    Path("./outputs/MINE.2025.06.1"),
+    "InfoNCE": Path("./outputs/2025-06-10"),
     "MINDE-c": Path("./outputs/MINDE.2025"),
     "MINDE-j": Path("./outputs/MINDE.2025"),
 }
@@ -33,7 +34,7 @@ tables = {
             "Distribution",
             "Estimator",
         ],
-        "fixed_columns": {"n_samples": 10000},
+        "fixed_columns": {"n_samples": 1000},
         "estimators": {
             "KSG": {
                 "min_columns": ["estimator.k_neighbors"],
@@ -50,16 +51,21 @@ tables = {
                 "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
                 "priority": 1,
             },
-            "MINDE-c": {
-                "min_columns": ["estimator_arch","mi_sigma"],
-                "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
-                "priority": 2,
+            "InfoNCE": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+                "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
+                "priority": 1,
             },
-            "MINDE-j": {
-                "min_columns": ["estimator_arch","mi_sigma"],
-                "fixed_columns": {"importance_sampling": True, "estimator_type": "j"},
-                "priority": 2,
-            },
+            # "MINDE-c": {
+            #     "min_columns": ["estimator_arch","mi_sigma"],
+            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
+            #     "priority": 2,
+            # },
+            # "MINDE-j": {
+            #     "min_columns": ["estimator_arch","mi_sigma"],
+            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "j"},
+            #     "priority": 2,
+            # },
         },
     },
 }
@@ -83,31 +89,18 @@ def postprocess_table(table: str) -> str:
     return table
 
 
-def to_latex(data: pandas.DataFrame) -> str:
-    n_levels = data.index.nlevels
-    n_columns = len(data.columns)
-
-    start = r"\begin{tabular}{" + 'r'*n_levels + 'c'*n_columns + "}" + '\n' + r"    \toprule" + '\n'
-    end   = r"    \bottomrule" + '\n' + r"\end{tabular}"
-
-    header = ""
-    for level_index, levels in enumerate(data.columns.levels):
-        header += ' '*4 + " & " * n_levels
-        for level in levels:
-            header += str(level)
-        header += '\n'
-
-    return start + header + end
-
-
 if __name__ == "__main__":
-    data_path = Path("./outputs/")
     #data = bebeziana.read(data_path, ["setup.yaml", "results.yaml"])
 
     for table_name, table_config in tables.items():
         final_data = []
-        for estimator_name, estimator_config in table_config["estimators"].items():            
-            data = pandas.read_csv(estimator_data_paths[estimator_name] / "data.csv")
+        for estimator_name, estimator_config in table_config["estimators"].items():
+            data_path = estimator_data_paths[estimator_name] / "data.csv"
+            if data_path.exists():
+                data = pandas.read_csv(data_path)
+            else:
+                data = bebeziana.read(estimator_data_paths[estimator_name], ["setup.yaml", "results.yaml"])
+                data.to_csv(data_path)
 
             for column, value in table_config["fixed_columns"].items():
                 data = data[data[column] == value]
@@ -115,7 +108,7 @@ if __name__ == "__main__":
             for column, value in estimator_config["fixed_columns"].items():
                 data = data[data[column] == value]
 
-            data["Estimator"] = f"_{estimator_config["priority"]}_{estimator_name}"
+            data["Estimator"] = f"_{estimator_config['priority']}_{estimator_name}"
             data["Distribution"] = data["distribution._target_"].map(distribution_names).fillna(data["distribution._target_"])
 
             data[table_config["target"]["name"]] = table_config["target"]["function"](data)
@@ -156,4 +149,5 @@ if __name__ == "__main__":
             )
         table = postprocess_table(table)
 
-        print(table)
+        with open(Path(".") / table_name, 'w') as table_file:
+            table_file.write(table)
