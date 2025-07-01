@@ -2,11 +2,12 @@
 
 distribution:
   _target_: mutinfo.distributions.base.LogGammaExponential
+  mutual_information: ${processed.mutual_information}
 
-distribution_key: dim=${distribution.dimensionality}/MI=${distribution.mutual_information}
+distribution_key: dim=${distribution.dimensionality}/MI=${raw.mutual_information}
 
 hydra:
   sweeper:
     params:
-      ++distribution.mutual_information: ${default_grid.mutual_information}
+      ++raw.mutual_information: ${default_grid.mutual_information}
       ++distribution.dimensionality: ${default_grid.dimensionality}

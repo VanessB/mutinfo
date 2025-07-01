@@ -8,76 +8,6 @@ from sklearn.utils.validation import check_is_fitted, _is_fitted
 from collections.abc import Callable
 
 
-class GenericAutoencoderConv2d(torch.nn.Module):
-    """
-    A very simple convolutional autoencoder.
-    """
-    
-    def __init__(self, image_shape: tuple[int], hidden_dim: int=2, leaky=0.2) -> None:
-        super().__init__()
-
-        if (not len(image_shape) in [3, 4]):
-            raise ValueError("Inputs shpuld be batches of images.")
-
-        class DownConvBlock(torch.nn.Module):
-            def __init__(self, in_channels: int, out_channels: int, leaky: float=0.2) -> None:
-                super().__init__()
-
-                self.convolution = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same")
-                self.pooling     = torch.nn.MaxPool2d(2)
-                self.batchnorm   = torch.nn.BatchNorm2d(out_channels)
-                self.activation  = torch.nn.LeakyReLU(leaky)
-
-            def forward(self, x):
-                x = self.convolution(x)
-                x = self.pooling(x)
-                x = self.batchnorm(x)
-                x = self.activation(x)
-
-                return x
-
-        class UpConvBlock(torch.nn.Module):
-            def __init__(self, in_channels: int, out_channels: int, leaky: float=0.2) -> None:
-                super().__init__()
-
-                self.convolution = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same")
-                self.upsample    = torch.nn.Upsample(scale_factor=2)
-                self.batchnorm   = torch.nn.BatchNorm2d(out_channels)
-                self.activation  = torch.nn.LeakyReLU(leaky)
-
-            def forward(self, x):
-                x = self.upsample(x)
-                x = self.convolution(x)
-                x = self.batchnorm(x)
-                x = self.activation(x)
-
-                return x
-
-        image_power = int(math.floor(math.log2(image_shape[-1])))
-        in_channels = image_shape[1] if (len(image_shape) == 4) else 1
-        
-        self.encoder = torch.nn.Sequential(
-            DownConvBlock(in_channels, 4, leaky),
-            DownConvBlock(4, 8, leaky),
-            *[DownConvBlock(8, 8, leaky) for _ in range(2, image_power)],
-            torch.nn.Flatten(),
-            torch.nn.Linear(8, hidden_dim),
-            torch.nn.Tanh(),
-        )
-
-        self.decoder = torch.nn.Sequential(
-            torch.nn.Linear(hidden_dim, 8),
-            torch.nn.LeakyReLU(leaky),
-            torch.nn.Unflatten(dim=-1, unflattened_size=(8, 1, 1)),
-            *[UpConvBlock(8, 8, leaky) for _ in range(1, image_power)],
-            UpConvBlock(8, 4, leaky),
-            torch.nn.Conv2d(4, 1, kernel_size=3, padding="same"),
-        )
-
-    def forward(self, z):
-        return self.decoder(self.encoder(z))
-
-
 class AutoencoderPreprocessing(BaseEstimator, TransformerMixin):
     """
     Combination of transforms to be applied to elements of a tuple.
@@ -173,3 +103,73 @@ class AutoencoderPreprocessing(BaseEstimator, TransformerMixin):
 
     def __sklearn_is_fitted__(self) -> bool:
         return True
+
+
+class GenericAutoencoderConv2d(torch.nn.Module):
+    """
+    A very simple convolutional autoencoder.
+    """
+    
+    def __init__(self, image_shape: tuple[int], hidden_dim: int=2, leaky=0.2) -> None:
+        super().__init__()
+
+        if (not len(image_shape) in [3, 4]):
+            raise ValueError("Inputs shpuld be batches of images.")
+
+        class DownConvBlock(torch.nn.Module):
+            def __init__(self, in_channels: int, out_channels: int, leaky: float=0.2) -> None:
+                super().__init__()
+
+                self.convolution = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same")
+                self.pooling     = torch.nn.MaxPool2d(2)
+                self.batchnorm   = torch.nn.BatchNorm2d(out_channels)
+                self.activation  = torch.nn.LeakyReLU(leaky)
+
+            def forward(self, x):
+                x = self.convolution(x)
+                x = self.pooling(x)
+                x = self.batchnorm(x)
+                x = self.activation(x)
+
+                return x
+
+        class UpConvBlock(torch.nn.Module):
+            def __init__(self, in_channels: int, out_channels: int, leaky: float=0.2) -> None:
+                super().__init__()
+
+                self.convolution = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same")
+                self.upsample    = torch.nn.Upsample(scale_factor=2)
+                self.batchnorm   = torch.nn.BatchNorm2d(out_channels)
+                self.activation  = torch.nn.LeakyReLU(leaky)
+
+            def forward(self, x):
+                x = self.upsample(x)
+                x = self.convolution(x)
+                x = self.batchnorm(x)
+                x = self.activation(x)
+
+                return x
+
+        image_power = int(math.floor(math.log2(image_shape[-1])))
+        in_channels = image_shape[1] if (len(image_shape) == 4) else 1
+        
+        self.encoder = torch.nn.Sequential(
+            DownConvBlock(in_channels, 4, leaky),
+            DownConvBlock(4, 8, leaky),
+            *[DownConvBlock(8, 8, leaky) for _ in range(2, image_power)],
+            torch.nn.Flatten(),
+            torch.nn.Linear(8, hidden_dim),
+            torch.nn.Tanh(),
+        )
+
+        self.decoder = torch.nn.Sequential(
+            torch.nn.Linear(hidden_dim, 8),
+            torch.nn.LeakyReLU(leaky),
+            torch.nn.Unflatten(dim=-1, unflattened_size=(8, 1, 1)),
+            *[UpConvBlock(8, 8, leaky) for _ in range(1, image_power)],
+            UpConvBlock(8, 4, leaky),
+            torch.nn.Conv2d(4, 1, kernel_size=3, padding="same"),
+        )
+
+    def forward(self, z):
+        return self.decoder(self.encoder(z))

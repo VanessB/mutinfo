@@ -71,8 +71,7 @@ def _distribute_mutual_information(
 
 def _generate_cov_via_tridiagonal(
     mutual_information: float,
-    X_dim: int,
-    Y_dim: int,
+    dimensionality: int | tuple[int, int],
     randomize_interactions: bool=True,
     shuffle_interactions: bool=True
 ) -> normal.CovViaTridiagonal:
@@ -84,7 +83,7 @@ def _generate_cov_via_tridiagonal(
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim, Y_dim : int
+    dimensionality: int or tuple[int, int],
         Dimensionality of the vectors.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
@@ -101,13 +100,18 @@ def _generate_cov_via_tridiagonal(
         with the provided value of the mutual information.
     """
 
-    min_dim = min(X_dim, Y_dim)
+    if isinstance(dimensionality, int):
+        dimensionality = (dimensionality, dimensionality)
+    elif not isinstance(dimensionality, tuple):
+        raise ValueError("Expected `dimensionality` to be of type `int` or `tuple[int, int]`")
+    
+    min_dim = min(dimensionality)
     componentwise_mutual_information = _distribute_mutual_information(mutual_information, min_dim, not randomize_interactions)
     correlation_coefficient = normal.mutual_information_to_correlation(componentwise_mutual_information)
 
     if shuffle_interactions:
-        X_orthogonal_matrix = None if X_dim == 1 else ortho_group.rvs(X_dim)
-        Y_orthogonal_matrix = None if Y_dim == 1 else ortho_group.rvs(Y_dim)
+        X_orthogonal_matrix = None if dimensionality[0] == 1 else ortho_group.rvs(dimensionality[0])
+        Y_orthogonal_matrix = None if dimensionality[1] == 1 else ortho_group.rvs(dimensionality[1])
     else:
         X_orthogonal_matrix = None
         Y_orthogonal_matrix = None
@@ -124,7 +128,7 @@ def CorrelatedNormal(*args, **kwargs) -> normal.correlated_multivariate_normal:
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim, Y_dim : int
+    dimensionality: int or tuple[int, int],
         Dimensionality of the vectors.
     randomize_interactions : bool, optional
         Randomize component-wise mutual information
@@ -154,7 +158,7 @@ def CorrelatedUniform(*args, **kwargs) -> tools.mapped_multi_rv_frozen:
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim, Y_dim : int
+    dimensionality: int or tuple[int, int],
         Dimensionality of the vectors.
     randomize_correlation : bool, optional
         Randomize component-wise mutual information
@@ -178,8 +182,7 @@ def CorrelatedUniform(*args, **kwargs) -> tools.mapped_multi_rv_frozen:
 
 def CorrelatedStudent(
     mutual_information: float,
-    X_dim: int,
-    Y_dim: int,
+    dimensionality: int | tuple[int, int],
     degrees_of_freedom: int,
     randomize_interactions: bool=True,
     shuffle_interactions: bool=True
@@ -192,7 +195,7 @@ def CorrelatedStudent(
     ----------
     mutual_information : float
         Mutual information (lies within [0.0; +inf)).
-    X_dim, Y_dim : int
+    dimensionality: int or tuple[int, int],
         Dimensionality of the vectors.
     degrees_of_freedom : int
         Number of degrees of freedom.
@@ -211,8 +214,13 @@ def CorrelatedStudent(
         with the provided value of the mutual information.
     """
 
+    if isinstance(dimensionality, int):
+        dimensionality = (dimensionality, dimensionality)
+    elif not isinstance(dimensionality, tuple):
+        raise ValueError("Expected `dimensionality` to be of type `int` or `tuple[int, int]`")
+
     correction_term = student.mutual_information_correction_term(
-        X_dim, Y_dim, degrees_of_freedom
+        dimensionality[0], dimensionality[1], degrees_of_freedom
     )
 
     correlation_mutual_information = mutual_information - correction_term
@@ -221,8 +229,7 @@ def CorrelatedStudent(
 
     covariance = _generate_cov_via_tridiagonal(
         correlation_mutual_information,
-        X_dim,
-        Y_dim,
+        dimensionality,
         randomize_interactions,
         shuffle_interactions,
     )

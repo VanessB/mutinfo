@@ -171,14 +171,15 @@ class JointTransform(BaseEstimator, TransformerMixin):
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y=None):
         for x, transform in zip(X, self.transforms):
-            transform.fit(x)
+            if not transform is None:
+                transform.fit(x)
 
         return self
 
     def transform(self, X) -> tuple:
         check_is_fitted(self)
 
-        return tuple(transform.transform(x) for x, transform in zip(X, self.transforms))
+        return tuple(x if transform is None else transform.transform(x) for x, transform in zip(X, self.transforms))
 
     def __sklearn_is_fitted__(self) -> bool:
-        return all(_is_fitted(transform) for transform in self.transforms)
+        return all(((transform is None) or _is_fitted(transform)) for transform in self.transforms)
