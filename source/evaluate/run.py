@@ -1,6 +1,7 @@
 import hydra
 import mutinfo
 import numpy
+import traceback
 
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
@@ -43,19 +44,31 @@ def run_test(config : DictConfig) -> None:
             x, y = random_variable.rvs(config["n_samples"])
             results["mutual_information"]["values"].append(estimator(x, y))
 
-        # All values.
-        results["mutual_information"]["values"] = numpy.array(results["mutual_information"]["values"])
+        # If the estimator is parametrized, get the total number of parameters.
+        # TODO: make pretty.
+        #_est = estimator
+        #if isinstance(_est, TransformedMutualInformationEstimator):
+        #    _est = _est.estimator
+        #if isinstance(_est, ParametricMutualInformationEstimator):
+        #    setup["n_parameters"] = _est.count_parameters(x, y)
+        setup["n_parameters"] = 0
+        if "parameters_counter" in config:
+            parameters_counter = instantiate(config["parameters_counter"], _convert_="object")
+            setup["n_parameters"] = parameters_counter(estimator, x, y)
 
-        # Mean and standard deviation (might be unstable).
-        results["mutual_information"]["mean"]   = float(numpy.mean(results["mutual_information"]["values"]))
-        results["mutual_information"]["std"]    = float(numpy.std(results["mutual_information"]["values"]))
-
-        # Meduian and interquartile range (more robust to the outliers).
-        results["mutual_information"]["median"] = float(numpy.median(results["mutual_information"]["values"]))
-        results["mutual_information"]["half_interquartile_range"] = float(
-            numpy.quantile(results["mutual_information"]["values"], 0.75) -
-            numpy.quantile(results["mutual_information"]["values"], 0.25)
-        )
+        for statistic in ["mutual_information"]:
+            # All values.
+            results[statistic]["values"] = numpy.array(results[statistic]["values"])
+    
+            # Mean and standard deviation (might be unstable).
+            results[statistic]["mean"]   = float(numpy.mean(results[statistic]["values"]))
+            results[statistic]["std"]    = float(numpy.std(results[statistic]["values"]))
+    
+            # Meduian and interquartile range (more robust to outliers).
+            results[statistic]["median"] = float(numpy.median(results[statistic]["values"]))
+            results[statistic]["lower_quartile"] = float(numpy.quantile(results[statistic]["values"], 0.25))
+            results[statistic]["upper_quartile"] = float(numpy.quantile(results[statistic]["values"], 0.75))
+            results[statistic]["half_interquartile_range"] = results[statistic]["upper_quartile"] - results[statistic]["lower_quartile"]
 
         path = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
@@ -66,7 +79,7 @@ def run_test(config : DictConfig) -> None:
             yaml.dump(results, file, default_flow_style=False)
 
     except Exception as exception:
-        print(exception) # Just ignoring exceptions so the sweeping continues.
+        traceback.print_exc() # Just ignoring exceptions so sweeping continues.
 
 
 

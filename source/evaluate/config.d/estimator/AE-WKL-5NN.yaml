@@ -6,7 +6,7 @@ estimator:
     _target_: mutinfo.estimators.knn.WKL
     k_neighbors: 5
   transform:
-    _target_: mutinfo.estimators.neural.compression.AutoencoderPreprocessing
+    _target_: mutinfo.estimators.parametric.compression.AutoencoderPreprocessing
     autoencoder_factory:
-      _target_: mutinfo.estimators.neural.compression.GenericAutoencoderConv2d
+      _target_: mutinfo.estimators.parametric.compression.GenericAutoencoderConv2d
       _partial_: True
