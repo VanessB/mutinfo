@@ -10,6 +10,7 @@ from . import gamma_exponential
 from . import normal
 from . import smoothed_uniform
 from . import student
+from . import mixture
 from .. import tools
 
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
@@ -342,3 +343,40 @@ def SmoothedUniform(
     inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
     
     return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon)
+
+def MixtureUniform(
+    mutual_information: float,
+    dimensionality: int,
+    normalize: bool,
+    randomize_interactions: bool=False
+) -> mixture.mixed_with_randomized_parameters:
+    """
+    Create a multivariate mixture of uniform distributions
+    with defined mutual information between subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimensionality : int
+        Dimensionality of the vectors.
+    normalize : bool
+        Normalize the distribution.
+    randomize_interactions : bool, optional
+        Randomize component-wise mutual information
+        (the total value of mutual information stays fixed).
+        If not randomized, interactions are assigned uniformly.
+
+    Returns
+    -------
+    random_variable : mixture.mixture_uniform
+        An instance of mixture.mixture_uniform
+        with the provided value of the mutual information.
+    """
+
+    if randomize_interactions:
+        raise NotImplementedError("Interaction randomization is not implemented for `MixtureUniform` yet.")
+    else:
+        componentwise_mutual_information = mutual_information / dimensionality
+    
+    return tools.stacked_multi_rv_frozen(mixture.mixed_with_randomized_parameters(componentwise_mutual_information, normalize), dimensionality)
