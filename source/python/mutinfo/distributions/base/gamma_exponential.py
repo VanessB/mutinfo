@@ -76,7 +76,7 @@ def _scalar_mutual_information_to_inverse_shape_parameter(mutual_information: fl
 
     # Unfortunatelly, no closed-form expression is available.
     result = root_scalar(
-        lambda x : _scalar_inverse_shape_parameter_to_mutual_information(x) - mutual_information,
+        lambda x : _scalar_inverse_shape_parameter_to_mutual_information(x) - mutual_information, # Use faster, scalar version.
         bracket=(lower_bound, upper_bound),
     )
     if result.converged:
@@ -109,7 +109,7 @@ def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float
     inverse_shape_parameter = numpy.asarray(inverse_shape_parameter)
 
     mask = inverse_shape_parameter < 2.0 * _EPS
-    mutual_information = numpy.zeros_like(inverse_shape_parameter)
+    mutual_information = numpy.empty_like(inverse_shape_parameter)
     mutual_information[mask]  = 0.5 * inverse_shape_parameter[mask]
     mutual_information[~mask] = digamma(1.0 / inverse_shape_parameter[~mask]) + \
                                 inverse_shape_parameter[~mask] + numpy.log(inverse_shape_parameter[~mask])

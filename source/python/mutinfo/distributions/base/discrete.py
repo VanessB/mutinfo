@@ -10,6 +10,8 @@ from scipy.stats._multivariate import multi_rv_frozen
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value, _check_probability_value
 
 
+_EPS = 1.0e-6
+
 def _entropy_to_length_and_remainder(entropy: float) -> tuple[int, float]:
     # Shannon entropy is non-negative.
     _check_mutual_information_value(entropy, "entropy")
@@ -62,6 +64,38 @@ def entropy_to_probabilities(entropy: float) -> numpy.ndarray:
 
     return _length_and_remainder_to_probabilities(*_entropy_to_length_and_remainder(entropy))
 
+def _scalar_reroll_probability_to_mutual_information(
+    reroll_probability: float,
+    alphabet_size: int,
+) -> float:
+    """
+    Calculate mutual information in a discrete symmetric noisy channel with
+    uniformly distributed input and given reroll probability.
+    (Scalar version)
+
+    Parameters
+    ----------
+    reroll_probability : float or array_like
+        Reroll probability.
+    alphabet_size : int or array_like
+        Alphabet size.
+
+    Returns
+    -------
+    mutual_information : float
+        Mutual information.
+    """
+
+    approximate_mutual_information = 0.5 * (1.0 - reroll_probability)**2 * (alphabet_size - 1)
+
+    if approximate_mutual_information < _EPS:
+        return approximate_mutual_information
+    else:
+        success_probability = 1.0 - reroll_probability * (1.0 - 1.0 / alphabet_size)
+
+        return math.log(alphabet_size) + \
+            xlogy(success_probability, success_probability) + \
+            xlogy(1.0 - success_probability, reroll_probability / alphabet_size)
 
 def _scalar_mutual_information_to_reroll_probability(
     mutual_information: float,
@@ -91,7 +125,7 @@ def _scalar_mutual_information_to_reroll_probability(
 
     # Unfortunatelly, no closed-form expression is available.
     result = root_scalar(
-        lambda x : reroll_probability_to_mutual_information(x, alphabet_size) - mutual_information,
+        lambda x : _scalar_reroll_probability_to_mutual_information(x, alphabet_size) - mutual_information, # Use faster, scalar version.
         bracket=(lower_bound, upper_bound),
     )
     if result.converged:
@@ -100,7 +134,6 @@ def _scalar_mutual_information_to_reroll_probability(
         raise ValueError("Unable to find the reroll probability.")
 
 _vectorized_mutual_information_to_reroll_probability = numpy.vectorize(_scalar_mutual_information_to_reroll_probability)
-
 
 def reroll_probability_to_mutual_information(
     reroll_probability: float | numpy.ndarray,
@@ -123,14 +156,21 @@ def reroll_probability_to_mutual_information(
         Mutual information.
     """
 
+    is_float = isinstance(reroll_probability, float)
+    reroll_probability = numpy.asarray(reroll_probability)
+
+    approximate_mutual_information = 0.5 * (1.0 - reroll_probability)**2 * (alphabet_size - 1)    
+
+    mask = approximate_mutual_information < _EPS
     success_probability = 1.0 - reroll_probability * (1.0 - 1.0 / alphabet_size)
     
-    entropy = numpy.log(alphabet_size)
-    negative_conditional_entropy = xlogy(success_probability, success_probability) + \
-            xlogy(1.0 - success_probability, reroll_probability / alphabet_size)
+    mutual_information = numpy.empty_like(reroll_probability)
+    mutual_information[mask] = approximate_mutual_information[mask]
+    mutual_information[~mask] = math.log(alphabet_size) + \
+            xlogy(success_probability[~mask], success_probability[~mask]) + \
+            xlogy(1.0 - success_probability[~mask], reroll_probability[~mask] / alphabet_size)
 
-    return numpy.maximum(0.0, entropy + negative_conditional_entropy)
-
+    return mutual_information.item() if is_float else mutual_information
 
 def mutual_information_to_reroll_probability(
     mutual_information: float | numpy.ndarray,
@@ -154,7 +194,14 @@ def mutual_information_to_reroll_probability(
         Reroll probability.
     """
 
-    return _vectorized_mutual_information_to_reroll_probability(mutual_information, alphabet_size)
+    _check_mutual_information_value(mutual_information)
+
+    if isinstance(mutual_information, float):
+        reroll_probability = _scalar_mutual_information_to_reroll_probability(mutual_information, alphabet_size)
+    else:
+        reroll_probability = _vectorized_mutual_information_to_reroll_probability(mutual_information, alphabet_size)
+    
+    return reroll_probability
 
 
 class splitted_rv_sample(rv_sample):
@@ -286,30 +333,13 @@ class symmetric_noisy_channel(rv_discrete_frozen):
 
         return self._dist._ctor_param["values"]
 
-    #@property
-    #def error_probability(self) -> float:
-    #    """
-    #    Probability of an error (random and equiprobable switch to any other value).
-    #    """
-    #    return self._error_probability
+    @property
+    def error_probability(self) -> float:
+        """
+        Probability of an error (random and equiprobable switch to any other value).
+        """
 
-    #@error_probability.setter
-    #def error_probability(self, error_probability: float) -> None:
-    #    if error_probability > (1.0 - 1.0 / len(self.values[0])):
-    #        raise ValueError("The value of `error_probability` can not exceed `(1 - 1/n)`, where `n` is the size of the alphabet.")
-
-    #    self._error_probability = error_probability
-
-    #@property
-    #def reroll_probability(self) -> float:
-    #    """
-    #    Reroll probability (probability of transmitting random noise innstead of input).
-    #    """
-
-    #    n_values = len(self.values[0])
-
-    #    # TODO: this is clearly bad if `self.error_probability` > (1 - 1/n_values)
-    #    return self.error_probability * n_values / (n_values - 1)
+        return self.reroll_probability * (1.0 - 1 / len(self.values[0]))
 
     @property
     def reroll_probability(self) -> float:
@@ -345,7 +375,7 @@ class symmetric_noisy_channel(rv_discrete_frozen):
         x_probabilities = self.values[1]
         y_probabilities = (1.0 - self.reroll_probability) * x_probabilities + self.reroll_probability / n_values
         y_conditional_probabilities = numpy.eye(n_values) * (1.0 - self.reroll_probability) + \
-                np.ones((n_values, n_values)) * self.reroll_probability / n_values
+                numpy.ones((n_values, n_values)) * self.reroll_probability / n_values
 
         y_entropy = -xlogy(y_probabilities, y_probabilities).sum()
         y_conditional_entropy = -(x_probabilities * xlogy(y_conditional_probabilities, y_conditional_probabilities).sum(axis=0)).sum()

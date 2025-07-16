@@ -157,7 +157,9 @@ class GenericConv2dClassifier(torchkld.mutual_information.MINE):
         X_shape: tuple,
         Y_shape: tuple,
         n_filters: int=16,
-        hidden_dim: int=128
+        hidden_dim: int=128,
+        n_X_convolutions: int=None,
+        n_Y_convolutions: int=None,
     ) -> None:
         super().__init__()
 
@@ -169,14 +171,24 @@ class GenericConv2dClassifier(torchkld.mutual_information.MINE):
 
         n_X_channels = X_shape[1] if (len(X_shape) == 4) else 1
         n_Y_channels = Y_shape[1] if (len(Y_shape) == 4) else 1
-        log2_remaining_size = 2
         
         # Convolution layers.
-        n_X_convolutions = int(math.floor(math.log2(X_shape[-1]))) - log2_remaining_size
+        # TODO: reuse code!
+        if n_X_convolutions is None:
+            log2_remaining_size = 2
+            n_X_convolutions = int(math.floor(math.log2(X_shape[-1]))) - log2_remaining_size
+            
         self.X_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_X_channels, n_filters, kernel_size=3, padding='same')] + \
                 [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_X_convolutions - 1)])
+        for conv_index in range(n_X_convolutions):
+            X_shape = X_shape[:-2] + ((X_shape[-2] - 2) // 2 + 1, (X_shape[-1] - 2) // 2 + 1,)
+
+        if n_Y_convolutions is None:
+            log2_remaining_size = 2
+            n_Y_convolutions = int(math.floor(math.log2(Y_shape[-1]))) - log2_remaining_size
+        for conv_index in range(n_Y_convolutions):
+            Y_shape = Y_shape[:-2] + ((Y_shape[-2] - 2) // 2 + 1, (Y_shape[-1] - 2) // 2 + 1,)
             
-        n_Y_convolutions = int(math.floor(math.log2(Y_shape[-1]))) - log2_remaining_size
         self.Y_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_Y_channels, n_filters, kernel_size=3, padding='same')] + \
                 [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_Y_convolutions - 1)])
 
@@ -184,9 +196,10 @@ class GenericConv2dClassifier(torchkld.mutual_information.MINE):
         self.maxpool2d = torch.nn.MaxPool2d((2,2))
 
         # Dense part.
-        remaining_dim = n_filters * 2**(2*log2_remaining_size)
+        remaining_dim_X = n_filters * X_shape[-1] * X_shape[-2]
+        remaining_dim_Y = n_filters * Y_shape[-1] * Y_shape[-2]
         self.dense = torch.nn.Sequential(
-            torch.nn.Linear(remaining_dim + remaining_dim, hidden_dim),
+            torch.nn.Linear(remaining_dim_X + remaining_dim_Y, hidden_dim),
             torch.nn.LeakyReLU(),
             torch.nn.Linear(hidden_dim, hidden_dim),
             torch.nn.LeakyReLU(),
