@@ -38,18 +38,21 @@ def _check_mutual_information_value(mutual_information: float, name: str="mutual
         raise ValueError(f"Expected `{name}` to be non-negative")
 
 
-def _check_quantile_value(quantile: float, name: str="quantile") -> None:
+def _check_probability_value(
+    probability: float | numpy.ndarray,
+    name: str="probability"
+) -> None:
     """
-    Checks mutual information to be within [0.0; +inf)
+    Checks probability to be within [0.0; 1.0]
 
     Parameters
     ----------
-    quantile : float or array_like
-        Quantile (lies within [0.0; 1.0]).
+    probability : float or array_like
+        Probability (lies within [0.0; 1.0]).
     name : str, optional
         Name of the variable to be checked.
-        Default is "quantile"
+        Default is "probability"
     """
 
-    if numpy.any(quantile < 0.0) or numpy.any(quantile > 1.0):
-        raise ValueError(f"Expected `{name}` to be within (0;1)")
+    if numpy.any(probability < 0.0) or numpy.any(probability > 1.0):
+        raise ValueError(f"Expected `{name}` to be within [0;1]")

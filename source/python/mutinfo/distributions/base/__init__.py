@@ -1,3 +1,4 @@
+import math
 import numpy
 
 from scipy.special import ndtr, ndtri
@@ -376,7 +377,76 @@ def MixtureUniform(
 
     if randomize_interactions:
         raise NotImplementedError("Interaction randomization is not implemented for `MixtureUniform` yet.")
-    else:
-        componentwise_mutual_information = mutual_information / dimensionality
+
+    componentwise_mutual_information = mutual_information / dimensionality
     
     return tools.stacked_multi_rv_frozen(mixture.mixed_with_randomized_parameters(componentwise_mutual_information, normalize), dimensionality)
+
+
+def NoiselessChannel(
+    mutual_information: float,
+    permute: bool=False
+) -> discrete.symmetric_noisy_channel:
+    """
+    Create a discrete noiseless channel with defined mutual information
+    between the input and output.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    permute : bool, optional
+        Apply random permutation.
+        
+    Returns
+    -------
+    random_variable : discrete.noiseless_channel
+        An instance of discrete.noiseless_channel
+        with the provided value of the mutual information.
+    """
+
+    probabilities = discrete.entropy_to_probabilities(mutual_information)
+    alphabet = numpy.arange(len(probabilities))
+
+    permutation = numpy.random.permutation(len(probabilities)) if permute else None
+    
+    return discrete.symmetric_noisy_channel(values=(alphabet, probabilities), permutation=permutation)
+
+
+def SymmetricNoisyChannel(
+    mutual_information: float,
+    permute: bool=False,
+    alphabet_size: int=None,
+) -> discrete.symmetric_noisy_channel:
+    """
+    Create a discrete symmetric noisy channel with defined mutual information
+    between the input and output.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    permute : bool, optional
+        Apply random permutation.
+    alphabet_size : int, optional
+        Alphabet size. If `None`, selected as `ceil(exp(mutual_information))`.
+        
+    Returns
+    -------
+    random_variable : discrete.noiseless_channel
+        An instance of discrete.noiseless_channel
+        with the provided value of the mutual information.
+    """
+
+    if alphabet_size is None:
+        alphabet_size = int(math.ceil(math.exp(mutual_information)))
+        if alphabet_size < 2:
+            alphabet_size = 2
+        
+    reroll_probability = discrete.mutual_information_to_reroll_probability(mutual_information, alphabet_size)
+    probabilities = numpy.ones(alphabet_size) / alphabet_size
+    alphabet = numpy.arange(alphabet_size)
+
+    permutation = numpy.random.permutation(alphabet_size) if permute else None
+    
+    return discrete.symmetric_noisy_channel(values=(alphabet, probabilities), reroll_probability=reroll_probability, permutation=permutation)

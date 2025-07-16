@@ -33,7 +33,7 @@ def _check_inverse_shape_parameter_value(
 
 def _scalar_inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float) -> float:
     """
-    Calculate the mutual information between two random variables with a
+    Calculate mutual information between two random variables with a
     gamma-exponential joint distribution defined by the inverse shape parameter.
     (Scalar version)
 
@@ -82,13 +82,13 @@ def _scalar_mutual_information_to_inverse_shape_parameter(mutual_information: fl
     if result.converged:
         return result.root
     else:
-        raise ValueError("Unable to find the inverse shape parameter")
+        raise ValueError("Unable to find the inverse shape parameter.")
 
 _vectorized_mutual_information_to_inverse_shape_parameter = numpy.vectorize(_scalar_mutual_information_to_inverse_shape_parameter)
 
 def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float | numpy.ndarray) -> float | numpy.ndarray:
     """
-    Calculate the mutual information between two random variables with a
+    Calculate mutual information between two random variables with a
     gamma-exponential joint distribution defined by the inverse shape parameter.
 
     Parameters
