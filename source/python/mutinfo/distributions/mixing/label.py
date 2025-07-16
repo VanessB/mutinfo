@@ -6,26 +6,26 @@ from collections.abc import Sequence
 from scipy.stats import randint
 from scipy.stats._distn_infrastructure import rv_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multi_rv_frozen
+from typing import Any
 
 
-class selector(multi_rv_frozen):
+class subsampler(multi_rv_frozen):
     """
     Frozen distribution with label data.
     """
     
-    def __init__(self, dataset: Sequence) -> None:
-        self._dist = randint
-        self._dataset = dataset
+    def __init__(
+        self,
+        data: Sequence,
+        subset_indices: numpy.ndarray,
+        replace: bool=False
+    ) -> None:
+        self.data = data
+        self.subset_indices = subset_indices
+        self.replace = replace
+        
 
-        self.subsets_indices = defaultdict(list)
-        for index, (value, label) in enumerate(self._dataset):
-            self.subsets_indices[label].append(index)
-
-        # Convert to numpy.ndarray.
-        self.labels = list(self.subsets_indices.keys())
-        self.subsets_indices = {key: numpy.array(value) for key, value in self.subsets_indices.items()}
-
-    def rvs(self, size: int=1, label=None) -> list:
+    def rvs(self, size: int=1) -> Sequence:
         """
         Random variate.
 
@@ -33,8 +33,6 @@ class selector(multi_rv_frozen):
         ----------
         size : int, optional
             Number of samples.
-        label : otional
-            A label to condition sampling.
 
         Returns
         -------
@@ -42,21 +40,64 @@ class selector(multi_rv_frozen):
             Random non-repetitive sampling.
         """
 
-        if label is None:
-            return numpy.random.choice(len(self._dataset), size=size, replace=False)
-
-        if not (label in self.subsets_indices.keys()):
-            raise IndexError(f"The label `{label}` is not in the dataset.")
-
-        indices = numpy.random.choice(len(self.subsets_indices[label]), size=size, replace=False)
+        indices = numpy.random.choice(len(self.subset_indices), size=size, replace=self.replace)
         
-        return self.subsets_indices[label][indices]
+        return self.data[self.subset_indices[indices]]
+
+
+def labeled_dataset_to_subsamplers(
+    data: numpy.ndarray,
+    labels: numpy.ndarray
+) -> dict[Any, subsampler]:
+    """
+    Convert labeled data into a dict of per-class subsamplers.
+
+    Parameters
+    ----------
+    data : array_like
+        Labeled data.
+    labels : array_like
+
+    Returns
+    -------
+    x : numpy.ndarray
+        Random non-repetitive sampling.
+    """
+
+    # Shitty as hell implementation.
+    subsamplers = {}
+    for label in numpy.unique(labels):
+        subsamplers[label] = subsampler(data, numpy.nonzero(labels == label)[0])
+
+    return subsamplers
+
+# TODO: does it belong here?
+def torchvision_labeled_dataset_to_subsamplers(
+    dataset,
+    transform=lambda x : (x / 255).unsqueeze(1)
+) -> dict[Any, subsampler]:
+    """
+    Convert torchvision labeled dataset into a dict of per-class subsamplers.
+
+    Parameters
+    ----------
+    data : array_like
+        Labeled data.
+    labels : array_like
+
+    Returns
+    -------
+    x : numpy.ndarray
+        Random non-repetitive sampling.
+    """
+    
+    return labeled_dataset_to_subsamplers(transform(dataset.data).numpy(), dataset.targets.numpy())
 
 
 class mixed_by_label(multi_rv_frozen):
     def __init__(
         self,
-        marginal_distributions: list[list[multi_rv_frozen | rv_frozen]],
+        marginal_distributions: dict[Any, list[multi_rv_frozen | rv_frozen]],
         labels_distribution: rv_discrete_frozen
     ) -> None:
         self._marginal_distributions = marginal_distributions
@@ -112,4 +153,4 @@ class mixed_by_label(multi_rv_frozen):
         if len(self._marginal_distributions) != 2:
             raise ValueError("Mutual information is only defined for pairs of random variables.")
         
-        return self._labels_distribution.mutual_information()
+        return self._labels_distribution.mutual_information

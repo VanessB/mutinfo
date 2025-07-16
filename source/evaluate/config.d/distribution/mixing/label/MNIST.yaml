@@ -1,0 +1,17 @@
+# @package _global_
+
+_subsamplers:
+  _target_: mutinfo.distributions.mixing.label.torchvision_labeled_dataset_to_subsamplers
+  dataset:
+    _target_: torchvision.datasets.MNIST # List inside list.
+    root: "./.cache"
+    download: True
+
+distribution:
+  _target_: mutinfo.distributions.mixing.label.mixed_by_label
+  marginal_distributions:
+    - ${_subsamplers}
+    - ${_subsamplers}
+  labels_distribution: ${labels_distribution}
+
+distribution_key: MNIST #/MI=${distribution.labels_distribution.mutual_information}
