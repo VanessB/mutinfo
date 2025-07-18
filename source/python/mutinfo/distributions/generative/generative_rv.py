@@ -30,15 +30,20 @@ class GenerativeRV(mapped_multi_rv_frozen):
             x = torch.tensor(x, device=self.device)
             y = torch.tensor(y, device=self.device)
 
+            # raise UserWarning(f"shape is {x.shape}, num_features is {self.num_features}, shape is {self.shape}, y.shape is {y.shape}")
+
             if x.shape[1] < self.num_features:
-                x_noise = torch.randn(x.shape[0], self.num_features - x.shape[1], device=self.device)*torch.std(x)+torch.mean(x)
+                x_noise = torch.randn(x.shape[0], self.num_features - x.shape[1], device=self.device)
                 x = torch.cat((x, x_noise), dim=1)
                 x = x.reshape(x.shape[0], *(self.shape))
             
             if y.shape[1] < self.num_features:
-                y_noise = torch.randn(y.shape[0], self.num_features - y.shape[1], device=self.device)*torch.std(y)+torch.mean(y)
+                y_noise = torch.randn(y.shape[0], self.num_features - y.shape[1], device=self.device)
                 y = torch.cat((y, y_noise), dim=1)
                 y = y.reshape(y.shape[0], *(self.shape))
+            
+            # x, y = torch.randn(x.shape, device=self.device), torch.randn(y.shape, device=self.device) #TODO: remove this line, just for testing
+
             
             x_mapped = torch.empty(0, *self.shape).to(x)
             y_mapped = torch.empty(0, *self.shape).to(y)

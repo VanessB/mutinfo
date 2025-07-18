@@ -22,8 +22,8 @@ def auto_drift_from_hf(id, step_size, device='cuda'):
         _model = pipe.unet.to(device).eval()
         
         def model_wrapper(x, t):
-            # Convert continuous time to discrete timesteps
-            timesteps = (t * 1000).long().clamp(0, 999)
+            # Ensure t is in [0, 1] range and map to [0, 999]
+            timesteps = (t * 999).long().clamp(0, 999)
             return _model(x, timesteps).sample
         
         def ddpm_inverse_scaler(x):
