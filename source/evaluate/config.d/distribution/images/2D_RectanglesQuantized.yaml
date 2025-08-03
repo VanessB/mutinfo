@@ -4,7 +4,8 @@ distribution:
   _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
   base_rv:
     _target_: mutinfo.distributions.base.UniformlyQuantized
-    dimensionality: 4
+    mutual_information: ${processed.mutual_information}
+    dimensionality: ${raw.dimensionality}
     base_rv:
       _target_: scipy.stats.uniform
     normalize: true
@@ -17,11 +18,13 @@ distribution:
       - _target_: builtins.eval
         _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${dimensionality}, ${dimensionality}))')"]
 
+raw:
+  dimensionality: 4
+
 distribution_key: 2d_rectangle_${dimensionality}x${dimensionality}/MI=${distribution.base_rv.mutual_information}
 
 hydra:
   sweeper:
     params:
-      #~distribution: mutual_information # Delete parameter.
-      ++distribution.base_rv.mutual_information: ${default_grid.mutual_information}
+      ++raw.mutual_information: ${default_grid.mutual_information}
       ++dimensionality: ${default_grid.image_dimensionality}

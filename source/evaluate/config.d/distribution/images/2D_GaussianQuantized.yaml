@@ -4,7 +4,8 @@ distribution:
   _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
   base_rv:
     _target_: mutinfo.distributions.base.UniformlyQuantized
-    dimensionality: 2
+    mutual_information: ${processed.mutual_information}
+    dimensionality: ${raw.dimensionality}
     base_rv:
       _target_: scipy.stats.uniform
     normalize: true
@@ -29,11 +30,13 @@ distribution:
           - ${dimensionality}
           - ${dimensionality}
 
+raw:
+  dimensionality: 2
+
 distribution_key: 2d_gaussian_${dimensionality}x${dimensionality}/MI=${distribution.base_rv.mutual_information}
 
 hydra:
   sweeper:
     params:
-      #~distribution: mutual_information # Delete parameter.
-      ++distribution.base_rv.mutual_information: ${default_grid.mutual_information}
+      ++raw.mutual_information: ${default_grid.mutual_information}
       ++dimensionality: ${default_grid.image_dimensionality}
