@@ -1,8 +1,7 @@
 # @package _global_
 
 labels_distribution:
-  _target_: mutinfo.distributions.base.SymmetricNoisyChannel
-  alphabet_size: 10
+  _target_: mutinfo.distributions.base.NoiselessChannel
   permute: True
 
 hydra:

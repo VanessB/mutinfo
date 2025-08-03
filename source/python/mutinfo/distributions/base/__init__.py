@@ -103,7 +103,7 @@ def _generate_cov_via_tridiagonal(
 
     if isinstance(dimensionality, int):
         dimensionality = (dimensionality, dimensionality)
-    elif not isinstance(dimensionality, tuple):
+    elif not (isinstance(dimensionality, tuple) or isinstance(dimensionality, list)):
         raise ValueError("Expected `dimensionality` to be of type `int` or `tuple[int, int]`")
     
     min_dim = min(dimensionality)
