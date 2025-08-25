@@ -5,26 +5,24 @@ distribution:
   base_rv:
     _target_: mutinfo.distributions.base.CorrelatedUniform
     mutual_information: ${processed.mutual_information}
-    dimensionality:
-      - ${raw.dimensionality}
-      - ${raw.dimensionality}
+    dimensionality: ${raw.dimensionality}
     randomize_interactions: False
     shuffle_interactions: True
   mapping:
     _target_: mutinfo.distributions.tools.cartesian_product_of_functions
     _args_:
       - _target_: builtins.eval
-        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${dimensionality}, ${dimensionality}))')"]
+        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${raw.image_dimensionality}, ${raw.image_dimensionality}))')"]
       - _target_: builtins.eval
-        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${dimensionality}, ${dimensionality}))')"]
+        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${raw.image_dimensionality}, ${raw.image_dimensionality}))')"]
 
 raw:
   dimensionality: 4
 
-distribution_key: 2d_rectangle_${dimensionality}x${dimensionality}/MI=${raw.mutual_information}
+distribution_key: 2d_rectangle_${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
 
 hydra:
   sweeper:
     params:
       ++raw.mutual_information: ${default_grid.mutual_information}
-      ++dimensionality: ${default_grid.image_dimensionality}
+      ++raw.image_dimensionality: ${default_grid.image_dimensionality}

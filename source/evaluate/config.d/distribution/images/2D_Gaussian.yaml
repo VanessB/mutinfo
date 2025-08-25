@@ -5,9 +5,7 @@ distribution:
   base_rv:
     _target_: mutinfo.distributions.base.CorrelatedUniform
     mutual_information: ${processed.mutual_information}
-    dimensionality:
-      - ${raw.dimensionality}
-      - ${raw.dimensionality}
+    dimensionality: ${raw.dimensionality}
     randomize_interactions: false
     shuffle_interactions: true
   mapping:
@@ -19,24 +17,24 @@ distribution:
           _target_: mutinfo.distributions.images.field.symmetric_gaussian_field
           _partial_: true
         grid_shape:
-          - ${dimensionality}
-          - ${dimensionality}
+          - ${raw.image_dimensionality}
+          - ${raw.image_dimensionality}
       - _target_: mutinfo.distributions.images.field.draw_field
         _partial_: true
         field_function:
           _target_: mutinfo.distributions.images.field.symmetric_gaussian_field
           _partial_: true
         grid_shape:
-          - ${dimensionality}
-          - ${dimensionality}
+          - ${raw.image_dimensionality}
+          - ${raw.image_dimensionality}
 
 raw:
   dimensionality: 2
 
-distribution_key: 2d_gaussian_${dimensionality}x${dimensionality}/MI=${raw.mutual_information}
+distribution_key: 2d_gaussian_${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
 
 hydra:
   sweeper:
     params:
       ++raw.mutual_information: ${default_grid.mutual_information}
-      ++dimensionality: ${default_grid.image_dimensionality}
+      ++raw.image_dimensionality: ${default_grid.image_dimensionality}
