@@ -3,6 +3,7 @@
 distribution:
   _target_: mutinfo.distributions.base.CorrelatedStudent
   mutual_information: ${processed.mutual_information}
+  dimensionality: ${raw.dimensionality}
 
 distribution_key: dim=${distribution.dimensionality}/dof=${distribution.degrees_of_freedom}/MI=${raw.mutual_information}
 
@@ -10,5 +11,5 @@ hydra:
   sweeper:
     params:
       ++raw.mutual_information: ${default_grid.nonzero_mutual_information}
+      ++raw.dimensionality: ${default_grid.dimensionality}
       ++distribution.degrees_of_freedom: 1, 2 #, 3, 4, 5 # Might be too much.
-      ++distribution.dimensionality: ${default_grid.dimensionality}
