@@ -1,12 +1,34 @@
 import numpy
 
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
+from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted, _is_fitted
 
 from sklearn.decomposition import PCA
 from sklearn.cross_decomposition import CCA
 
 from .base import MutualInformationEstimator, TransformedMutualInformationEstimator, JointTransform
+
+
+class flattening_transform(BaseEstimator, TransformerMixin):
+    """
+    Transform for flattening tensors.
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X) -> numpy.ndarray:
+        check_is_fitted(self)
+
+        return X.reshape(X.shape[0], -1)
+
+    def __sklearn_is_fitted__(self) -> bool:
+        return True
 
 
 class slicing_based(JointTransform):
@@ -124,7 +146,10 @@ class RandomSlicing(slicing_based):
         projection_dim = self.fit_projetion_dim(X)
         
         self.transforms = [
-            None if dim is None else RandomOrthogonalProjector(min(dim, x.shape[-1]))
+            None if dim is None else Pipeline([
+                ("flattening", flattening_transform()),
+                ("projection", RandomOrthogonalProjector(min(dim, numpy.prod(x.shape[1:]))))
+            ])
             for x, dim in zip(X, projection_dim)
         ]
 
@@ -145,7 +170,10 @@ class PrincipleComponentSlicing(slicing_based):
         projection_dim = self.fit_projetion_dim(X)
         
         self.transforms = [
-            None if dim is None else PCA(n_components=min(dim, x.shape[-1]), whiten=True)
+            None if dim is None else Pipeline([
+                ("flattening", flattening_transform()),
+                ("projection", PCA(n_components=min(dim, numpy.prod(x.shape[1:])), whiten=True))
+            ])
             for x, dim in zip(X, projection_dim)
         ]
 
@@ -168,16 +196,20 @@ class CanonicalCorrelationSlicing(BaseEstimator, TransformerMixin):
     def __init__(self, projection_dim: int=1) -> None:
         self.projection_dim = projection_dim
         self.cca = None
+        self.flattening_x = None
+        self.flattening_y = None
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y=None):
-        projection_dim = min(self.projection_dim, X[0].shape[-1], X[1].shape[-1])
+        projection_dim = min(self.projection_dim, numpy.prod(X[0].shape[1:]), numpy.prod(X[1].shape[1:]))
         self.cca = CCA(projection_dim).fit(*X)
+        self.flattening_x = flattening_transform().fit(X[0])
+        self.flattening_y = flattening_transform().fit(X[1])
         
         return self
 
     def transform(self, X, y=None):
-        return self.cca.transform(*X)
+        return self.cca.transform((self.flattening_x(X[0]), self.flattening_x(X[1])))
 
     def __sklearn_is_fitted__(self) -> bool:
         return (not self.cca is None) and _is_fitted(self.cca)

@@ -14,4 +14,4 @@ distribution:
     - ${_subsamplers}
   labels_distribution: ${labels_distribution}
 
-distribution_key: MNIST #/MI=${distribution.labels_distribution.mutual_information}
+distribution_key: MNIST/MI=${distribution.labels_distribution.mutual_information}

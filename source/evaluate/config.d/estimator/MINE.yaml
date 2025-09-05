@@ -13,7 +13,7 @@ estimator:
       _partial_: true
       lr: 1.0e-3
     loss_factory:
-      _target_: torchkld.loss.DonskerVaradhanLoss
+      _target_: torchfd.loss.DonskerVaradhanLoss
       _partial_: true
       biased: false
       ema_multiplier: 1.0e-2
@@ -36,4 +36,5 @@ hydra:
   sweeper:
     params:
       #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.estimator.backbone_factory.hidden_dim: 16, 32, 64, 128
+      #++estimator.estimator.backbone_factory.hidden_dim: 16, 32, 64, 128
+      ++estimator.estimator.backbone_factory.hidden_dim: 16

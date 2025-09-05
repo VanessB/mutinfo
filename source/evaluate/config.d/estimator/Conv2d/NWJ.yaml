@@ -11,10 +11,8 @@ estimator:
     _partial_: true
     lr: 1.0e-3
   loss_factory:
-    _target_: torchkld.loss.DonskerVaradhanLoss
+    _target_: torchfd.loss.NWJLoss
     _partial_: true
-    biased: false
-    ema_multiplier: 1.0e-2
   n_train_steps: 10000
   train_batch_size: 512
   estimate_batch_size: 512
