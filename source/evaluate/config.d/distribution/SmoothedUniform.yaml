@@ -3,6 +3,7 @@
 distribution:
   _target_: mutinfo.distributions.base.SmoothedUniform
   mutual_information: ${processed.mutual_information}
+  dimensionality: ${raw.dimensionality}
 
 distribution_key: dim=${distribution.dimensionality}/MI=${raw.mutual_information}
 
@@ -10,4 +11,4 @@ hydra:
   sweeper:
     params:
       ++raw.mutual_information: ${default_grid.mutual_information}
-      ++distribution.dimensionality: ${default_grid.dimensionality}
+      ++raw.dimensionality: ${default_grid.dimensionality}

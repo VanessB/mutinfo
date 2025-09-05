@@ -4,23 +4,25 @@ distribution:
   _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
   base_rv:
     _target_: mutinfo.distributions.base.CorrelatedUniform
-    X_dim: 4
-    Y_dim: 4
+    mutual_information: ${processed.mutual_information}
+    dimensionality: ${raw.dimensionality}
     randomize_interactions: False
     shuffle_interactions: True
   mapping:
     _target_: mutinfo.distributions.tools.cartesian_product_of_functions
     _args_:
       - _target_: builtins.eval
-        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${dimensionality}, ${dimensionality}))')"]
+        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${raw.image_dimensionality}, ${raw.image_dimensionality}))')"]
       - _target_: builtins.eval
-        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${dimensionality}, ${dimensionality}))')"]
+        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${raw.image_dimensionality}, ${raw.image_dimensionality}))')"]
 
-distribution_key: 2d_rectangle_${dimensionality}x${dimensionality}/MI=${distribution.base_rv.mutual_information}
+raw:
+  dimensionality: 4
+
+distribution_key: 2d_rectangle_${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
 
 hydra:
   sweeper:
     params:
-      #~distribution: mutual_information # Delete parameter.
-      ++distribution.base_rv.mutual_information: ${default_grid.mutual_information}
-      ++dimensionality: ${default_grid.image_dimensionality}
+      ++raw.mutual_information: ${default_grid.mutual_information}
+      ++raw.image_dimensionality: ${default_grid.image_dimensionality}

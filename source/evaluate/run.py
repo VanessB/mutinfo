@@ -27,6 +27,8 @@ def run_test(config : DictConfig) -> None:
         setup = {}
         setup["estimator"]    = OmegaConf.to_container(config["estimator"], resolve=True)
         setup["distribution"] = OmegaConf.to_container(config["distribution"], resolve=True)
+        if "raw" in config.keys():
+            setup["raw"] = OmegaConf.to_container(config["distribution"], resolve=True)
         
         setup["n_samples"] = int(config["n_samples"])
         setup["n_runs"]    = int(config["n_runs"])
