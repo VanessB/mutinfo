@@ -178,46 +178,47 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
 
         if (not len(X_shape) in [3, 4]) or (not len(Y_shape) in [3, 4]):
             raise ValueError("Inputs shpuld be batches of images.")
-
-        if (X_shape[-2] != X_shape[-1]) or (Y_shape[-2] != Y_shape[-1]):
-            raise ValueError("Input images have to be square.")
-
-        n_X_channels = X_shape[1] if (len(X_shape) == 4) else 1
-        n_Y_channels = Y_shape[1] if (len(Y_shape) == 4) else 1
-        
-        # Convolution layers.
-        # TODO: reuse code!
-        if n_X_convolutions is None:
-            log2_remaining_size = 2
-            n_X_convolutions = int(math.floor(math.log2(X_shape[-1]))) - log2_remaining_size
             
-        self.X_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_X_channels, n_filters, kernel_size=3, padding='same')] + \
-                [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_X_convolutions - 1)])
-        for conv_index in range(n_X_convolutions):
-            X_shape = X_shape[:-2] + ((X_shape[-2] - 2) // 2 + 1, (X_shape[-1] - 2) // 2 + 1,)
-
-        if n_Y_convolutions is None:
-            log2_remaining_size = 2
-            n_Y_convolutions = int(math.floor(math.log2(Y_shape[-1]))) - log2_remaining_size
-        for conv_index in range(n_Y_convolutions):
-            Y_shape = Y_shape[:-2] + ((Y_shape[-2] - 2) // 2 + 1, (Y_shape[-1] - 2) // 2 + 1,)
-            
-        self.Y_convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_Y_channels, n_filters, kernel_size=3, padding='same')] + \
-                [torch.nn.Conv2d(n_filters, n_filters, kernel_size=3, padding='same') for index in range(n_Y_convolutions - 1)])
+        self.X_convolutions, X_final_shape = self.build_conv2d_tower(X_shape, n_filters)
+        self.Y_convolutions, Y_final_shape = self.build_conv2d_tower(Y_shape, n_filters)
 
         self.activation = torch.nn.LeakyReLU()
         self.maxpool2d = torch.nn.MaxPool2d((2,2))
 
         # Dense part.
-        remaining_dim_X = n_filters * X_shape[-1] * X_shape[-2]
-        remaining_dim_Y = n_filters * Y_shape[-1] * Y_shape[-2]
+        X_remaining_dim = n_filters * X_final_shape[-1] * X_final_shape[-2]
+        Y_remaining_dim = n_filters * Y_final_shape[-1] * Y_final_shape[-2]
         self.dense = torch.nn.Sequential(
-            torch.nn.Linear(remaining_dim_X + remaining_dim_Y, hidden_dim),
+            torch.nn.Linear(X_remaining_dim + Y_remaining_dim, hidden_dim),
             torch.nn.LeakyReLU(),
             torch.nn.Linear(hidden_dim, hidden_dim),
             torch.nn.LeakyReLU(),
             torch.nn.Linear(hidden_dim, 1)
         )
+
+    def build_conv2d_tower(
+        self,
+        shape: tuple[int],
+        n_filters: int,
+        conv2d_params: dict={"kernel_size": 3, "padding": 'same'},
+        n_convolutions: int=None,
+    ) -> tuple[torch.nn.ModuleList, tuple[int]]:
+        if len(shape) == 3:
+            shape = (shape[0], 1, shape[1], shape[2])
+            
+        n_channels = shape[1]
+        min_size = min(shape[2], shape[3])
+
+        if n_convolutions is None:
+            log2_remaining_size = 2
+            n_convolutions = int(math.floor(math.log2(min_size))) - log2_remaining_size
+            
+        convolutions = torch.nn.ModuleList([torch.nn.Conv2d(n_channels, n_filters, **conv2d_params)] + \
+                [torch.nn.Conv2d(n_filters, n_filters, **conv2d_params) for index in range(n_convolutions - 1)])
+        for conv_index in range(n_convolutions):
+            shape = shape[:-2] + ((shape[-2] - 2) // 2 + 1, (shape[-1] - 2) // 2 + 1,)
+
+        return convolutions, shape
 
     @torchfd.mutual_information.MINE.marginalized
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:
