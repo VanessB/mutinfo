@@ -169,7 +169,7 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
         X_shape: tuple,
         Y_shape: tuple,
         n_filters: int=16,
-        hidden_dim: int=128,
+        hidden_dim: int=16,
         n_X_convolutions: int=None,
         n_Y_convolutions: int=None,
         *args, **kwargs

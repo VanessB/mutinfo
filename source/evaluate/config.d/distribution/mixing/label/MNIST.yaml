@@ -14,4 +14,6 @@ distribution:
     - ${_subsamplers}
   labels_distribution: ${labels_distribution}
 
+n_samples: 50000
+
 distribution_key: MNIST/MI=${distribution.labels_distribution.mutual_information}
