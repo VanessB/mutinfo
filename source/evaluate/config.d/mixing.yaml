@@ -6,7 +6,7 @@ to_be_seeded:
   - torch
 
 default_grid:
-  mutual_information: range(0.0, 2.0, 0.5)
+  mutual_information: range(0.0, 2.5, 0.5)
 
 raw:
   mutual_information: 0.0
@@ -21,5 +21,5 @@ hydra:
     subdir: ${estimator._target_}/${distribution._target_}/${distribution_key}/N=${n_samples}/${now:%Y-%m-%d_%H-%M-%S}_${hydra.job.num}
   sweeper:
     max_batch_size: 100 # Makes startup faster, see https://github.com/facebookresearch/hydra/issues/1324.
-    params:
-      ++n_samples: 100000
+    #params:
+      #++n_samples: 100000
