@@ -12,7 +12,10 @@ estimator:
     _partial_: true
     lr: 1.0e-3
   loss_factory:
-    _target_: torchfd.loss.NWJLoss
+    _target_: torchfd.loss.InfoNCELoss
+    _partial_: true
+  marginalizer_factory:
+    _target_: torchfd.mutual_information.OuterProductMarginalizer
     _partial_: true
   n_train_steps: 10000
   train_batch_size: 512

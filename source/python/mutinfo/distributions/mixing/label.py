@@ -47,7 +47,8 @@ class subsampler(multi_rv_frozen):
 
 def labeled_dataset_to_subsamplers(
     data: numpy.ndarray,
-    labels: numpy.ndarray
+    labels: numpy.ndarray,
+    split_by_labels: bool=True,
 ) -> dict[Any, subsampler]:
     """
     Convert labeled data into a dict of per-class subsamplers.
@@ -64,17 +65,21 @@ def labeled_dataset_to_subsamplers(
         Random non-repetitive sampling.
     """
 
-    # Shitty as hell implementation.
-    subsamplers = {}
-    for label in numpy.unique(labels):
-        subsamplers[label] = subsampler(data, numpy.nonzero(labels == label)[0])
-
-    return subsamplers
+    if split_by_labels:
+        # Shitty as hell implementation.
+        subsamplers = {}
+        for label in numpy.unique(labels):
+            subsamplers[label] = subsampler(data, numpy.nonzero(labels == label)[0])
+    
+        return subsamplers
+    else:
+        return subsampler(data, numpy.arange(0, len(data)))
 
 # TODO: does it belong here?
 def torchvision_labeled_dataset_to_subsamplers(
     dataset,
-    transform=lambda x : (x / 255).unsqueeze(1)
+    transform=lambda x : (x / 255).unsqueeze(1),
+    split_by_labels: bool=True,
 ) -> dict[Any, subsampler]:
     """
     Convert torchvision labeled dataset into a dict of per-class subsamplers.
@@ -91,7 +96,11 @@ def torchvision_labeled_dataset_to_subsamplers(
         Random non-repetitive sampling.
     """
     
-    return labeled_dataset_to_subsamplers(transform(dataset.data).numpy(), dataset.targets.numpy())
+    return labeled_dataset_to_subsamplers(
+        transform(dataset.data).numpy(),
+        dataset.targets.numpy(),
+        split_by_labels
+    )
 
 
 class mixed_by_label(multi_rv_frozen):
