@@ -5,7 +5,8 @@ estimator:
   backbone_factory:
     _target_: mutinfo.estimators.parametric.mine.GenericConv2dClassifier
     _partial_: true
-    hidden_dim: 128
+    hidden_dim: 16
+    n_filters: 16
   optimizer_factory:
     _target_: torch.optim.Adam
     _partial_: true
@@ -24,6 +25,8 @@ estimator:
 parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
+
+estimator_key: Conv2d-MINE/hidden=${estimator.backbone_factory.hidden_dim}/filters=${estimator.backbone_factory.n_filters}
 
 hydra:
   sweeper:
