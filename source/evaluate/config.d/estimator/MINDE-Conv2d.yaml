@@ -3,16 +3,16 @@
 estimator:
   _target_: mutinfo.estimators.parametric.minde.GenerativeMIEstimator
   name: MINDE-Conv2d
-  variant: j
+  variant: c
   backbone_factory:
     _target_: mutinfo.estimators.parametric.model.GenericConv2DDiffuser
     _partial_: true
-    hidden_dim: 16
-    n_filters: 2
+    hidden_dim: 64
+    n_filters: 8
   optimizer_factory:
     _target_: torch.optim.Adam
     _partial_: true
-    lr: 1e-2
+    lr: 2e-4
   logger:
     _target_: pytorch_lightning.loggers.WandbLogger
     project: tmlr
@@ -22,7 +22,7 @@ estimator:
     id: null
   trainer:
     _target_: pytorch_lightning.Trainer
-    max_steps: 100001
+    max_steps: 500001
     val_check_interval: 5000
     check_val_every_n_epoch: null
     limit_val_batches: 1.0
@@ -55,9 +55,3 @@ estimator:
 parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
-
-hydra:
-  sweeper:
-    params:
-      #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.backbone_factory.hidden_dim: 16

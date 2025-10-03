@@ -4,24 +4,22 @@ import math
 import numpy as np
 from .importance import *
 
-def _expand_mask(mask, i, size):
-    # check that size is not iterable
-    if not hasattr(size, '__iter__'):
-        return mask[:, i].view(mask.shape[0], 1).expand(mask.shape[0], size)
-    else:
-        sizes = list(size)
-        expanded_mask = mask[:, i]
-        for i, s in enumerate(sizes):
-            expanded_mask = expanded_mask.unsqueeze(-1)
-        try:
-            return expanded_mask.expand(mask.shape[0], *sizes)
-        except:
-            raise UserWarning(f"Sizes is {sizes} of minde_type {minde_type(sizes)}, sizes[0] is {sizes[0]} of minde_type {minde_type(sizes[0])}, sizes[1] is {sizes[1]} of minde_type {minde_type(sizes[1])}, mask shape is {mask.shape} and i is {i}")
-
 def expand_mask(mask, var_sizes):
-    return torch.cat([
-        _expand_mask(mask, i, size) for i, size in enumerate(var_sizes)
-    ], dim=1)
+    try:
+        expanded_parts = []
+        for i, size in enumerate(var_sizes):
+            # Convert torch.Size to int (total number of elements)
+            if isinstance(size, torch.Size):
+                size_int = size.numel()  # Total number of elements
+            else:
+                size_int = size
+            
+            expanded_part = mask[:, i].view(mask.shape[0], 1).expand(mask.shape[0], size_int)
+            expanded_parts.append(expanded_part)
+        
+        return torch.cat(expanded_parts, dim=1)
+    except Exception as e:
+        raise ValueError(f"mask: {mask}, var_sizes: {var_sizes}, error: {e}")
 
 
 class VP_SDE():
@@ -58,42 +56,22 @@ class VP_SDE():
 
     def marg_prob(self, t, x):
         
-        ## Returns mean and std of the marginal distribution P_t(xy_t) at time t.
+        ## Returns mean and std of the marginal distribution P_t(x_t) at time t.
         log_mean_coeff = -0.25 * t ** 2 * \
             (self.beta_max - self.beta_min) - 0.5 * t * self.beta_min
         mean = torch.exp(log_mean_coeff)
         std = torch.sqrt(1 - torch.exp(2 * log_mean_coeff))
-        if len(x.shape) > 2:
-            mean = mean.view(-1,1)
-            std = std.view(-1,1)
-            for i in range(len(x.shape)-2):
-                mean = mean.unsqueeze(-1)
-                std = std.unsqueeze(-1)
-        elif len(x.shape) == 2:
-            mean = mean.view(-1,1)
-            std = std.view(-1,1)
-        else:
-            raise NotImplementedError("Shape not supported")
-        
-        ret = mean * torch.ones_like(x, device=self.device), std * torch.ones_like(x, device=self.device)
-        return ret
+        return mean.view(-1, 1) * torch.ones_like(x, device=self.device), std.view(-1, 1) * torch.ones_like(x, device=self.device)
 
-    def sample(self, xy_0, t):
+    def sample(self, x_0, t):
         ## Forward SDE
-        # Sample from P(xy_t | xy_0) at time t. Returns A noisy version of xy_0.
-        xy_0 = xy_0.float()
+        # Sample from P(x_t | x_0) at time t. Returns A noisy version of x_0.
         mean, std = self.marg_prob(t, t)
-        z = torch.randn_like(xy_0, device=self.device)
-        for i in range(len(xy_0.shape)-2):
-            mean = mean.unsqueeze(-1)
-            std = std.unsqueeze(-1)
-        try:
-            xy_t = xy_0 * mean + std * z
-        except:
-            raise ValueError(f"Shape mismatch xy_0={xy_0.shape} mean={mean.shape} std={std.shape} z={z.shape}")
-        return xy_t, z, mean, std
+        z = torch.randn_like(x_0, device=self.device)
+        x_t = x_0 * mean + std * z
+        return x_t, z, mean, std
 
-    def train_step(self, x, y, score_net, eps=1e-5, return_denoised=False, encoder=None):
+    def train_step(self, x, y, score_net, eps=1e-5, debug=True):
         """
         Perform a single training step for the SDE model.
 
@@ -123,47 +101,63 @@ class VP_SDE():
             
         # Select the mask randomly from the list of masks to learn the denoising score functions.
 
-        mask = self.masks[i.long(), :]
-        mask_data = expand_mask(mask, var_sizes)
-        # Variables that are not marginal
-        mask_data_marg = (mask_data < 0).float()
-        # Variables that will be diffused
-        mask_data_diffused = mask_data.clip(0, 1)
-        xy_t, Z, mean, std = self.sample(xy_0=xy_0, t=t)
+        if debug:
+            # do normal diffusion model training
+            xy_t, Z, mean, std = self.sample(x_0=xy_0, t=t)
+            mask = self.masks[i, :]
+            score = score_net(xy_t, t=t, mask=mask, std=None)
+            x_denoised = (xy_t - std * score)/mean
+            loss = torch.square(score - Z)
+            # print(f"Norms: x0 {torch.norm(xy_0, p=2)}, xt {torch.norm(xy_t, p=2)}, z {torch.norm(Z, p=2)}, score {torch.norm(score, p=2)}, mean {torch.norm(mean, p=2)}, std {torch.norm(std, p=2)}, loss {torch.norm(loss, p=2)}")
+            # print(f"mean Z {torch.mean(Z)}, mean score {torch.mean(score)}, mean loss {torch.mean(loss)}")
+            # print(f"std Z {torch.std(std * score)}, std score {torch.std(score)}, std loss {torch.std(loss)}")
+        else:
 
-        try:
+            mask = self.masks[i.long(), :]
+            mask_data = expand_mask(mask, var_sizes)
+            # Variables that are not marginal
+            mask_data_marg = (mask_data < 0).float()
+            # Variables that will be diffused
+            mask_data_diffused = mask_data.clip(0, 1)
+            xy_t, Z, mean, std = self.sample(x_0=xy_0, t=t)
+
             xy_t = mask_data_diffused * xy_t + (1 - mask_data_diffused) * xy_0
-        except:
-            raise ValueError(f"Shape mismatch mask_data_diffused={mask_data_diffused.shape} xy_0={xy_0.shape} xy_t={xy_t.shape}")
-        xy_t = xy_t * (1 - mask_data_marg) + torch.zeros_like(xy_0, device=self.device) *mask_data_marg
+            xy_t = xy_t * (1 - mask_data_marg) + torch.zeros_like(xy_0, device=self.device) *mask_data_marg
 
-        output = score_net(xy_t, t=t, mask=mask, std=None)
-        try:
+            output = score_net(xy_t, t=t, mask=mask, std=None)
             score = output * mask_data_diffused
-        except:
-            raise ValueError(f"Shape mismatch output={output.shape} mask_data_diffused={mask_data_diffused.shape}")
-        Z = Z * mask_data_diffused
 
-        x_denoised = (xy_t - std * score)/mean
-        #Score matching of diffused data reweithed proportionnaly to the size of the diffused data.
-        
-        # Flatten the data
-        score = score.view(bs, -1)
-        mask_data_diffused = mask_data_diffused.view(bs, -1)
-        Z = Z.view(bs, -1)
+            Z = Z * mask_data_diffused
 
-        total_size = score.size(1)
-        n_diff=torch.sum(mask_data_diffused, dim=1)
-        try:
+            x_denoised = (xy_t - std * score)/mean
+            #Score matching of diffused data reweithed proportionnaly to the size of the diffused data.
+            
+            # Flatten the data
+            score = score.view(bs, -1)
+            mask_data_diffused = mask_data_diffused.view(bs, -1)
+            Z = Z.view(bs, -1)
+
+            total_size = score.size(1)
+            n_diff=torch.sum(mask_data_diffused, dim=1)
             weight = (((total_size - n_diff) / total_size) + 1).view(bs, 1)
-        except:
-            raise ValueError(f"Shape mismatch total_size={total_size} n_diff={n_diff.shape} bs={bs}")
-        loss = (weight * (torch.square(score - Z))).sum(1, keepdim=False)/n_diff
+            loss = (weight * (torch.square(score - Z))).sum(1, keepdim=False)/n_diff
 
-        if return_denoised:
-            return loss, x_denoised, xy_t
-        
-        return loss
+        ret_dict = {
+            'loss': torch.mean(loss),
+            'x_denoised': x_denoised,
+            'score_norm': torch.norm(score, p=2),
+            'noise_norm': torch.norm(Z, p=2),
+            'score': score,
+            'noise': std*Z,
+            'xy_t': xy_t,
+            't': t,
+            'mask': mask,
+            'mean': mean,
+            'std': std
+        }
+
+        return loss, ret_dict
+
     
     def get_masks_training(self):
         """
