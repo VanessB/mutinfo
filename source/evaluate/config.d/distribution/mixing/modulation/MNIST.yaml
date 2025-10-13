@@ -1,0 +1,24 @@
+# @package _global_
+
+default_grid:
+  mutual_information: range(0.0, 11.0)
+
+_subsamplers:
+  _target_: mutinfo.distributions.mixing.label.torchvision_labeled_dataset_to_subsamplers
+  split_by_labels: False
+  dataset:
+    _target_: torchvision.datasets.MNIST # List inside list.
+    root: "./.cache"
+    download: True
+
+distribution:
+  _target_: mutinfo.distributions.mixing.modulation.modulated
+  marginal_distributions:
+    - ${_subsamplers}
+    - ${_subsamplers}
+  modulation_distribution: ${modulation_distribution}
+  modulator: ${modulator}
+
+n_samples: 50000
+
+distribution_key: MNIST/MI=${distribution.modulation_distribution.mutual_information}

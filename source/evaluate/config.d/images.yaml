@@ -10,6 +10,9 @@ default_grid:
   nonzero_mutual_information: 1.0, 2.5, 5.0, 7.5, 10.0
   image_dimensionality: 16, 32
 
+processed:
+  mutual_information: ${raw.mutual_information}
+
 hydra:
   mode: MULTIRUN
   sweep:

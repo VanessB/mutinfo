@@ -26,7 +26,6 @@ def test_mutual_information_and_inverse_shape_parameter():
     true_mutual_information = numpy.array([[0.0, 0.5e-8, 0.5e-7, 0.5e-6], [1.320398016, 1.878830153, 4.729296455, 8.633289188]])
     
     inverse_shape_parameter = gamma_exponential.mutual_information_to_inverse_shape_parameter(true_mutual_information)
-    print(inverse_shape_parameter - true_inverse_shape_parameter)
     assert numpy.allclose(true_inverse_shape_parameter, inverse_shape_parameter, atol=1.0e-5), "inverse shape parameter is calculated incorrectly."
     assert numpy.allclose(true_mutual_information, gamma_exponential.inverse_shape_parameter_to_mutual_information(inverse_shape_parameter)), \
     "Mutual information to inverse shape parameter conversion is inconsistent (NumPy arrays)."

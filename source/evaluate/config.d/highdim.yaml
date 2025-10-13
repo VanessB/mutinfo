@@ -10,15 +10,12 @@ default_grid:
   nonzero_mutual_information: range(1.0, 11.0)
   dimensionality: 8, 16, 32, 64
 
-raw:
-  mutual_information: 0.0
-
 processed:
   mutual_information:
     _target_: builtins.float.__mul__
     _args_:
       - ${raw.mutual_information}
-      - ${distribution.dimensionality}
+      - ${raw.dimensionality}
 
 hydra:
   mode: MULTIRUN

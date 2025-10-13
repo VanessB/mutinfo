@@ -6,15 +6,20 @@ to_be_seeded:
   - torch
 
 default_grid:
-  mutual_information: 1.0
-  dimensionality: 1
+  mutual_information: 1.0, 2.0
+  nonzero_mutual_information: 1.0
+  dimensionality: 1, 2
+
+processed:
+  mutual_information: ${raw.mutual_information}
 
 hydra:
   mode: MULTIRUN
   sweep:
-    dir: outputs/${now:%Y-%m-%d}
+    dir: outputs/debug/${now:%Y-%m-%d}
     subdir: ${estimator._target_}/${distribution._target_}/${distribution_key}/N=${n_samples}/${now:%Y-%m-%d_%H-%M-%S}_${hydra.job.num}
   sweeper:
     max_batch_size: 100 # Makes startup faster, see https://github.com/facebookresearch/hydra/issues/1324.
     params:
       ++n_samples: 10000
+      ++distribution.randomize_interactions: false
