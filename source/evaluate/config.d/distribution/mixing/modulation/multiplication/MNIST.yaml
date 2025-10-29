@@ -1,7 +1,17 @@
 # @package _global_
 
+name:
+  distribution: modulation/multiplication/MNIST
+
 default_grid:
-  mutual_information: range(0.0, 11.0)
+  mutual_information: range(0.0, 6.0) #range(0.0, 11.0)
+
+modulation_distribution:
+  dimensionality: 1 # Fix dimensionality for MNIST (one channel)
+
+modulator:
+  _target_: builtins.eval
+  _args_: ["lambda x_tuple, y_tuple : tuple(x * y.reshape((-1,) + (1,) * (len(x.shape) - 1)) for x, y in zip(x_tuple, y_tuple))"]
 
 _subsamplers:
   _target_: mutinfo.distributions.mixing.label.torchvision_labeled_dataset_to_subsamplers
@@ -21,4 +31,5 @@ distribution:
 
 n_samples: 50000
 
-distribution_key: MNIST/MI=${distribution.modulation_distribution.mutual_information}
+key:
+  distribution: ${name.distribution}/${key.modulation_distribution}

@@ -1,7 +1,13 @@
 # @package _global_
 
+name:
+  estimator: KSG
+
 estimator:
   _target_: mutinfo.estimators.knn.KSG
+
+key:
+  estimator: ${name.estimator}/k=${estimator.k_neighbors}
 
 hydra:
   sweeper:

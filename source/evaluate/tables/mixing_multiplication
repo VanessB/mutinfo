@@ -1,0 +1,10 @@
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{6}{c}{Ground-truth Mutual Information} \\
+processed.mutual_information & 0.0 & 1.0 & 2.0 & 3.0 & 4.0 & 5.0 \\
+Estimator &  &  &  &  &  &  \\
+\midrule
+MINE-DV & $ 0.00 $ & $ 0.08 $ & $ 0.24 $ & $ 0.63 $ & $ 1.40 $ & $ 2.30 $ \\
+MINE-NWJ & $ 0.00 $ & $ 0.27 $ & $ 0.98 $ & $ 1.64 $ & $ 2.28 $ & $ 3.49 $ \\
+\bottomrule
+\end{tabular}

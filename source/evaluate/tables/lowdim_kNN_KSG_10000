@@ -1,0 +1,14 @@
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{6}{c}{Number of nearest neighbours} \\
+estimator.k_neighbors & 1 & 2 & 3 & 5 & 10 & 20 \\
+Distribution &  &  &  &  &  &  \\
+\midrule
+Correlated Normal & $ 1.25 $ & $ 1.39 $ & $ 1.48 $ & $ 1.60 $ & $ 1.79 $ & $ 2.00 $ \\
+Correlated Student & $ 1.34 $ & $ 1.49 $ & $ 1.59 $ & $ 1.73 $ & $ 1.93 $ & $ 2.17 $ \\
+Correlated Unform & $ 1.38 $ & $ 1.52 $ & $ 1.61 $ & $ 1.73 $ & $ 1.91 $ & $ 2.12 $ \\
+Log-Gamma-Exp. & $ 0.40 $ & $ 0.51 $ & $ 0.59 $ & $ 0.71 $ & $ 0.91 $ & $ 1.15 $ \\
+Smoothed Uniform & $ 1.35 $ & $ 1.50 $ & $ 1.59 $ & $ 1.72 $ & $ 1.90 $ & $ 2.10 $ \\
+Uniformly Quantized & $ 1.00 $ & $ 1.44 $ & $ 1.70 $ & $ 2.00 $ & $ 2.38 $ & $ 2.71 $ \\
+\bottomrule
+\end{tabular}

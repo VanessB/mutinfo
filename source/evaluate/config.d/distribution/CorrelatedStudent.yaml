@@ -1,11 +1,15 @@
 # @package _global_
 
+name:
+  distribution: CorrelatedStudent
+
 distribution:
   _target_: mutinfo.distributions.base.CorrelatedStudent
   mutual_information: ${processed.mutual_information}
   dimensionality: ${raw.dimensionality}
 
-distribution_key: dim=${distribution.dimensionality}/dof=${distribution.degrees_of_freedom}/MI=${raw.mutual_information}
+key:
+  distribution: ${name.distribution}/dim=${distribution.dimensionality}/dof=${distribution.degrees_of_freedom}/MI=${round:${raw.mutual_information}}
 
 hydra:
   sweeper:
