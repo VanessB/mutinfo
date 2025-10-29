@@ -1,5 +1,8 @@
 # @package _global_
 
+name:
+  estimator: Conv2d-MINE
+
 estimator:
   _target_: mutinfo.estimators.parametric.mine.MINE
   backbone_factory:
@@ -26,7 +29,8 @@ parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
 
-estimator_key: Conv2d-MINE/hidden=${estimator.backbone_factory.hidden_dim}/filters=${estimator.backbone_factory.n_filters}
+key:
+  estimator: ${name.estimator}/hidden=${estimator.backbone_factory.hidden_dim}/filters=${estimator.backbone_factory.n_filters}
 
 hydra:
   sweeper:
