@@ -1,12 +1,16 @@
 # @package _global_
 
+name:
+  distribution: MixtureUniform
+
 distribution:
   _target_: mutinfo.distributions.base.MixtureUniform
   mutual_information: ${processed.mutual_information}
   dimensionality: ${raw.dimensionality}
   normalize: true
 
-distribution_key: dim=${distribution.dimensionality}/MI=${raw.mutual_information}
+key:
+  distribution: ${name.distribution}/dim=${distribution.dimensionality}/MI=${round:${raw.mutual_information}}
 
 hydra:
   sweeper:

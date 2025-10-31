@@ -1,7 +1,10 @@
 # @package _global_
 
+name:
+  distribution: labels/MNIST
+
 default_grid:
-  mutual_information: 2.0
+  mutual_information: 0.0, 0.5, 1.0, 1.5, 2.0, 2.3 #range(0.0, 2.4, 0.2)
 
 _subsamplers:
   _target_: mutinfo.distributions.mixing.label.torchvision_labeled_dataset_to_subsamplers
@@ -19,4 +22,5 @@ distribution:
 
 n_samples: 50000
 
-distribution_key: MNIST/MI=${distribution.labels_distribution.mutual_information}
+key:
+  distribution: ${name.distribution}/${key.labels_distribution}
