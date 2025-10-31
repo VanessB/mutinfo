@@ -29,12 +29,12 @@ class GenerativeMIEstimator(pl.LightningModule):
                  is_parametric_marginal: bool=False,
                  sampling_eps: float=0.001,
                  use_ema: bool=True,
-                 ema_decay: float=0.9999):
+                 ema_decay: float=0.9999,
+                 ckpt_path: str = None,):
         super().__init__()
+        self.ckpt_path = ckpt_path
         self.estimator_name = name.lower()
         self.sde = sde
-        self.noise = noise
-        self.graph = graph
         self.variant = variant
         self.backbone_factory = backbone_factory
         self.optimizer_factory = optimizer_factory
@@ -195,8 +195,8 @@ class GenerativeMIEstimator(pl.LightningModule):
             
 
         if "minde" in self.estimator_name:
-            self.scaler = lambda x: x * 2. - 1.
-            self.inverse_scaler = lambda x: (x + 1.) / 2.
+            self.scaler = lambda x: x
+            self.inverse_scaler = lambda x: x
             train_x = self.scaler(train_x)
             train_y = self.scaler(train_y)
             estimate_x = self.scaler(estimate_x)
@@ -237,6 +237,7 @@ class GenerativeMIEstimator(pl.LightningModule):
         self.trainer.fit(self, 
                     train_dataloaders=train_dataloader,
                     val_dataloaders=estimate_dataloader,
+                    ckpt_path=self.ckpt_path
                     )
                     
 

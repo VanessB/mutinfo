@@ -4,6 +4,7 @@ estimator:
   _target_: mutinfo.estimators.parametric.minde.GenerativeMIEstimator
   name: MINDE-Conv2d
   variant: c
+  ckpt_path: null # Path to checkpoint to resume from.
   backbone_factory:
     _target_: mutinfo.estimators.parametric.model.UNet
     _partial_: true
@@ -51,6 +52,8 @@ estimator:
   estimate_batch_size: 512
   estimate_fraction: 0.5 # `null` for no splitting.
   sampling_eps: 0.001
+
+estimator_key: MINDE-UNet/type=${estimator.variant}/hidden=${estimator.backbone_factory.hidden_dim}/layers_per_block=${estimator.backbone_factory.layers_per_block}
 
 parameters_counter:
   _target_: builtins.eval
