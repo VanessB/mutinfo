@@ -6,35 +6,116 @@ import re
 from pathlib import Path
 
 distribution_names = {
-    "mutinfo.distributions.base.CorrelatedNormal":    "Correlated Normal",
-    "mutinfo.distributions.base.CorrelatedUniform":   "Correlated Unform",
-    "mutinfo.distributions.base.CorrelatedStudent":   "Correlated Student",
-    "mutinfo.distributions.base.LogGammaExponential": "Log-Gamma-Exp.",
-    "mutinfo.distributions.base.SmoothedUniform":     "Smoothed Uniform",
-    "mutinfo.distributions.base.UniformlyQuantized":  "Uniformly Quantized",
-}
-
-estimator_data_paths = {
-    "KSG":     Path("./outputs/KSG.2025.04.1"),
-    "WKL":     Path("./outputs/WKL.2025.04.1"),
-    "MINE":    Path("./outputs/MINE.2025.06.1"),
-    "InfoNCE": Path("./outputs/2025-06-10"),
-    "MINDE-c": Path("./outputs/MINDE.2025"),
-    "MINDE-j": Path("./outputs/MINDE.2025"),
+    "CorrelatedNormal":    "Correlated Normal",
+    "CorrelatedUniform":   "Correlated Unform",
+    "CorrelatedStudent":   "Correlated Student",
+    "LogGammaExponential": "Log-Gamma-Exp.",
+    "SmoothedUniform":     "Smoothed Uniform",
+    "UniformlyQuantized":  "Uniformly Quantized",
 }
 
 tables = {
-    "GT_MAE": {
+    "lowdim_kNN_KSG_10000": {
+        "data_paths": {
+            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+        },
+        "target": {
+            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
+            "name": "Number of nearest neighbours",
+        },
+        "column_to_chart": {
+            "name": "estimator.k_neighbors",
+            "apply": int,
+        },
+        "rows_to_chart": [
+            "Distribution",
+        ],
+        "fixed_columns": {"n_samples": 10000},
+        "estimators": {
+            "KSG": {
+                "min_columns": [],
+                "fixed_columns": {},
+                "priority": 0,
+            },
+        },
+    },
+    
+    "lowdim_kNN_WKL_10000": {
+        "data_paths": {
+            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+        },
+        "target": {
+            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
+            "name": "Number of nearest neighbours",
+        },
+        "column_to_chart": {
+            "name": "estimator.k_neighbors",
+            "apply": int,
+        },
+        "rows_to_chart": [
+            "Distribution",
+        ],
+        "fixed_columns": {"n_samples": 10000},
+        "estimators": {
+            "WKL": {
+                "min_columns": [],
+                "fixed_columns": {},
+                "priority": 0,
+            },
+        },
+    },
+    
+    "lowdim_DD_MINDE-DV": {
+        "data_paths": {
+            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+        },
+        "target": {
+            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
+            "name": "Number of nearest neighbours",
+        },
+        "column_to_chart": {
+            "name": "n_samples",
+            "apply": int,
+        },
+        "rows_to_chart": [
+            "Distribution",
+            "estimator.estimator.backbone_factory.hidden_dim"
+        ],
+        "fixed_columns": {},
+        "estimators": {
+            "MINE-DV": {
+                "min_columns": [],
+                "fixed_columns": {},
+                "priority": 0,
+            },
+        },
+    },
+    
+    "lowdim_GT_MAE_10000": {
+        "data_paths": {
+            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+        },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
             "name": "Ground-truth Mutual Information",
         },
-        "column_to_chart": "distribution.mutual_information",
+        "column_to_chart": {
+            "name": "distribution.mutual_information",
+            "apply": int,
+        },
         "rows_to_chart": [
             "Distribution",
             "Estimator",
         ],
-        "fixed_columns": {"n_samples": 1000},
+        "fixed_columns": {"n_samples": 10000},
         "estimators": {
             "KSG": {
                 "min_columns": ["estimator.k_neighbors"],
@@ -46,16 +127,16 @@ tables = {
                 "fixed_columns": {},
                 "priority": 0,
             },
-            "MINE": {
+            "MINE-DV": {
                 "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
                 "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
                 "priority": 1,
             },
-            "InfoNCE": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
-                "priority": 1,
-            },
+            # "InfoNCE": {
+            #     "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+            #     "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
+            #     "priority": 1,
+            # },
             # "MINDE-c": {
             #     "min_columns": ["estimator_arch","mi_sigma"],
             #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
@@ -66,6 +147,68 @@ tables = {
             #     "fixed_columns": {"importance_sampling": True, "estimator_type": "j"},
             #     "priority": 2,
             # },
+        },
+    },
+
+    "mixing_labels": {
+        "data_paths": {
+            "MINE-DV":     Path("./outputs/mixing/2025-10-20/Conv2d-MINE-DV"),
+            "MINE-NWJ":    Path("./outputs/mixing/2025-10-20/Conv2d-MINE-NWJ"),
+        },
+        "target": {
+            "function": lambda x : (x["processed.mutual_information"] - x["mutual_information.mean"]).abs(),
+            "name": "Ground-truth Mutual Information",
+        },
+        "column_to_chart": {
+            "name": "processed.mutual_information",
+            "apply": lambda x : f"{x:.1f}",
+        },
+        "rows_to_chart": [
+            "Estimator",
+        ],
+        "fixed_columns": {"name.distribution": "labels/MNIST"},
+        "estimators": {
+            "MINE-DV": {
+                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
+                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "priority": 0,
+            },
+            "MINE-NWJ": {
+                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
+                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "priority": 0,
+            },
+        },
+    },
+
+    "mixing_multiplication": {
+        "data_paths": {
+            "MINE-DV":     Path("./outputs/mixing/2025-10-20/Conv2d-MINE-DV"),
+            "MINE-NWJ":    Path("./outputs/mixing/2025-10-20/Conv2d-MINE-NWJ"),
+        },
+        "target": {
+            "function": lambda x : (x["processed.mutual_information"] - x["mutual_information.mean"]).abs(),
+            "name": "Ground-truth Mutual Information",
+        },
+        "column_to_chart": {
+            "name": "processed.mutual_information",
+            "apply": lambda x : f"{x:.1f}",
+        },
+        "rows_to_chart": [
+            "Estimator",
+        ],
+        "fixed_columns": {"name.distribution": "modulation/multiplication/MNIST"},
+        "estimators": {
+            "MINE-DV": {
+                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
+                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "priority": 0,
+            },
+            "MINE-NWJ": {
+                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
+                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "priority": 0,
+            },
         },
     },
 }
@@ -95,11 +238,11 @@ if __name__ == "__main__":
     for table_name, table_config in tables.items():
         final_data = []
         for estimator_name, estimator_config in table_config["estimators"].items():
-            data_path = estimator_data_paths[estimator_name] / "data.csv"
+            data_path = table_config["data_paths"][estimator_name] / "data.csv"
             if data_path.exists():
                 data = pandas.read_csv(data_path)
             else:
-                data = bebeziana.read(estimator_data_paths[estimator_name], ["setup.yaml", "results.yaml"])
+                data = bebeziana.read(table_config["data_paths"][estimator_name], ["setup.yaml", "results.yaml"])
                 data.to_csv(data_path)
 
             for column, value in table_config["fixed_columns"].items():
@@ -109,26 +252,28 @@ if __name__ == "__main__":
                 data = data[data[column] == value]
 
             data["Estimator"] = f"_{estimator_config['priority']}_{estimator_name}"
-            data["Distribution"] = data["distribution._target_"].map(distribution_names).fillna(data["distribution._target_"])
+            data["Distribution"] = data["name.distribution"].map(distribution_names).fillna(data["distribution._target_"])
 
             data[table_config["target"]["name"]] = table_config["target"]["function"](data)
-            data[table_config["column_to_chart"]] = data[table_config["column_to_chart"]].apply(int)
+            data[table_config["column_to_chart"]["name"]] = data[table_config["column_to_chart"]["name"]].apply(
+                table_config["column_to_chart"]["apply"]
+            )
 
             data = pandas.DataFrame(
                 data.groupby(
-                    table_config["rows_to_chart"] + [table_config["column_to_chart"]] + estimator_config["min_columns"],
+                    table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]] + estimator_config["min_columns"],
                     dropna=False
                 )[[table_config["target"]["name"]]].mean()
             )
 
             data = pandas.DataFrame(
                 data.groupby(
-                    table_config["rows_to_chart"] + [table_config["column_to_chart"]],
+                    table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]],
                     dropna=False
                 )[[table_config["target"]["name"]]].min()
             )
 
-            data = data.unstack(table_config["column_to_chart"])
+            data = data.unstack(table_config["column_to_chart"]["name"])
 
             final_data.append(data)
 
@@ -149,5 +294,5 @@ if __name__ == "__main__":
             )
         table = postprocess_table(table)
 
-        with open(Path(".") / table_name, 'w') as table_file:
+        with open(Path("./tables") / table_name, 'w') as table_file:
             table_file.write(table)

@@ -19,8 +19,10 @@ def cartesian_product_of_functions(*functions):
 
 
 class stacked_multi_rv_frozen(multi_rv_frozen):
-    def __init__(self, base_rv: multi_rv_frozen, dimensionality: int,
-                 *args, **kwargs) -> None:
+    def __init__(
+        self, base_rv: multi_rv_frozen, dimensionality: int,
+        *args, **kwargs
+    ) -> None:
         """
         Create a multivariate random vector with i.i.d. components
         of the provided distribution.
@@ -81,10 +83,13 @@ class stacked_multi_rv_frozen(multi_rv_frozen):
         
 
 class mapped_multi_rv_frozen(multi_rv_frozen):
-    def __init__(self, base_rv: multi_rv_frozen,
-                 mapping: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray],
-                 inverse_mapping: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]=None,
-                 *args, **kwargs) -> None:
+    def __init__(
+        self,
+        base_rv: multi_rv_frozen,
+        mapping: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray],
+        inverse_mapping: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]=None,
+        *args, **kwargs
+    ) -> None:
         """
         Create a multivariate random vector with a pushforward distribution
         of a random vactor `multi_rv_frozen` via a mapping `mapping`.

@@ -1,4 +1,4 @@
-n_runs: 10
+n_runs: 1
 seed: 42
 to_be_seeded:
   - basic
@@ -12,14 +12,12 @@ raw:
   mutual_information: 0.0
 
 processed:
-  mutual_information: ${raw.mutual_information}
+  mutual_information: ${default_grid.mutual_information}
 
 hydra:
   mode: MULTIRUN
   sweep:
     dir: outputs/mixing/${now:%Y-%m-%d}
-    subdir: ${estimator_key}/${distribution_key}/N=${n_samples}/${now:%Y-%m-%d_%H-%M-%S}_${hydra.job.num}
+    subdir: ${key.estimator}/${key.distribution}/N=${n_samples}/${now:%Y-%m-%d_%H-%M-%S}_${hydra.job.num}
   sweeper:
     max_batch_size: 100 # Makes startup faster, see https://github.com/facebookresearch/hydra/issues/1324.
-    #params:
-      #++n_samples: 100000
