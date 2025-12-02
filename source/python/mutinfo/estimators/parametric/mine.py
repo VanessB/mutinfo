@@ -39,7 +39,7 @@ class MINE(MutualInformationEstimator):
         n_train_steps: int=10000,
         train_batch_size: int=512,
         estimate_batch_size: int=512,
-        estimate_fraction: float=0.5,
+        estimate_size: float=0.5,
         clip: float=None,
         device: str="cpu",
         **kwargs,
@@ -65,7 +65,7 @@ class MINE(MutualInformationEstimator):
         self.n_train_steps = n_train_steps
         self.train_batch_size = train_batch_size
         self.estimate_batch_size = estimate_batch_size
-        self.estimate_fraction = estimate_fraction
+        self.estimate_size = estimate_size
         self.clip = clip
         self.device = device
 
@@ -87,10 +87,10 @@ class MINE(MutualInformationEstimator):
 
         self._check_arguments(x, y)
 
-        if self.estimate_fraction is None:
+        if self.estimate_size is None:
             train_x, estimate_x, train_y, estimate_y = x, x, y, y
         else:
-            train_x, estimate_x, train_y, estimate_y = train_test_split(x, y, test_size=self.estimate_fraction)
+            train_x, estimate_x, train_y, estimate_y = train_test_split(x, y, test_size=self.estimate_size)
             
         
         train_dataset = torch.utils.data.TensorDataset(
@@ -107,14 +107,14 @@ class MINE(MutualInformationEstimator):
             train_dataset,
             batch_size=self.train_batch_size,
             shuffle=True,
-            pin_memory=True,
+            pin_memory=False,
         )
 
         estimate_dataloader = torch.utils.data.DataLoader(
             estimate_dataset,
             batch_size=self.estimate_batch_size,
             shuffle=False,
-            pin_memory=True,
+            pin_memory=False,
         )
 
         backbone = self.backbone_factory(
