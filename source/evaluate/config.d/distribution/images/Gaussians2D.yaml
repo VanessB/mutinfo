@@ -1,5 +1,8 @@
 # @package _global_
 
+name:
+  distribution: Gaussian2D
+
 distribution:
   _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
   base_rv:
@@ -31,7 +34,8 @@ distribution:
 raw:
   dimensionality: 2
 
-distribution_key: 2d_gaussian_${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
+key:
+  distribution: ${name.distribution}/${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
 
 hydra:
   sweeper:

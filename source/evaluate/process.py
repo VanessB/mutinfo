@@ -96,8 +96,61 @@ tables = {
             },
         },
     },
+
+    "mi_estimate:base:distribution_method:GT:1k": {
+        "data_paths": {
+            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+        },
+        "target": {
+            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
+            "name": "Ground-truth Mutual Information",
+        },
+        "column_to_chart": {
+            "name": "distribution.mutual_information",
+            "apply": int,
+        },
+        "rows_to_chart": [
+            "Distribution",
+            "Estimator",
+        ],
+        "fixed_columns": {"n_samples": 1000},
+        "estimators": {
+            "KSG": {
+                "min_columns": ["estimator.k_neighbors"],
+                "fixed_columns": {},
+                "priority": 0,
+            },
+            "WKL": {
+                "min_columns": ["estimator.k_neighbors"],
+                "fixed_columns": {},
+                "priority": 0,
+            },
+            "MINE-DV": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+                "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
+                "priority": 1,
+            },
+            # "InfoNCE": {
+            #     "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+            #     "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
+            #     "priority": 1,
+            # },
+            # "MINDE-c": {
+            #     "min_columns": ["estimator_arch","mi_sigma"],
+            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
+            #     "priority": 2,
+            # },
+            # "MINDE-j": {
+            #     "min_columns": ["estimator_arch","mi_sigma"],
+            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "j"},
+            #     "priority": 2,
+            # },
+        },
+    },
     
-    "lowdim_GT_MAE_10000": {
+    "mi_estimate:base:distribution_method:GT:10k": {
         "data_paths": {
             "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
             "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),

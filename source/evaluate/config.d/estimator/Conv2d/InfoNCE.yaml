@@ -23,7 +23,7 @@ estimator:
   n_train_steps: 10000
   train_batch_size: 512
   estimate_batch_size: 512
-  estimate_fraction: 0.5 # `null` for no splitting.
+  estimate_size: 0.5 # `null` for no splitting.
   device: "cuda"
 
 parameters_counter:
@@ -37,6 +37,6 @@ hydra:
   sweeper:
     params:
       ++estimator.backbone_factory.n_filters: 8, 16
-      #++estimator.estimator.estimate_fraction: null, 0.5
+      #++estimator.estimator.estimate_size: null, 0.5
       #++estimator.backbone_factory.hidden_dim: 8, 16, 32
       #++estimator.backbone_factory.n_filters: 8, 16, 32, 64, 128

@@ -181,6 +181,50 @@ def CorrelatedUniform(*args, **kwargs) -> tools.mapped_multi_rv_frozen:
     return tools.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), lambda x, y: (ndtr(x), ndtr(y)), lambda x, y: (ndtri(x), ndtri(y)))
 
 
+def ExponentiatedCorrelatedNormal(
+    mutual_information: float,
+    dimensionality: int | tuple[int, int],
+    randomize_interactions: bool=True,
+    shuffle_interactions: bool=True,
+    exponent: float=1.5,
+) -> tools.mapped_multi_rv_frozen:
+    """
+    Create a long-tailed power-stretched multivariate correlated
+    normal distribution given the value of the mutual information
+    between the subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimensionality: int or tuple[int, int],
+        Dimensionality of the vectors.
+    randomize_correlation : bool, optional
+        Randomize component-wise mutual information
+        (the total value of mutual information stays fixed).
+        If not randomized, interactions are assigned uniformly.
+    shuffle_interactions : bool, optional
+        Use orthogonal matrices to randomize off-diagonal block of the
+        covariation matrix (mutual information stays fixed).
+    exponent : float, optional
+        Exponent used to stretch the tails (default: 1.5).
+
+    Returns
+    -------
+    random_variable : mapped.mapped_multi_rv_frozen
+        An instance of mapped.mapped_multi_rv_frozen
+        with the provided value of the mutual information
+        and ndtr (normal to uniform) mapping.
+    """
+
+    # Use exponentiation to stretch the tails.
+    return tools.mapped_multi_rv_frozen(
+        CorrelatedNormal(mutual_information, dimensionality, randomize_interactions, shuffle_interactions),
+        lambda x, y: (numpy.copysign(numpy.abs(x)**exponent, x), numpy.copysign(numpy.abs(y)**exponent, y)),
+        lambda x, y: (numpy.copysign(numpy.abs(x)**(1.0/exponent), x), numpy.copysign(numpy.abs(y)**(1.0/exponent), y))
+    )
+
+
 def CorrelatedStudent(
     mutual_information: float,
     dimensionality: int | tuple[int, int],
