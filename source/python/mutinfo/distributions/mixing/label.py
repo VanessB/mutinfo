@@ -39,12 +39,6 @@ class subsampler(multi_rv_frozen):
         x : numpy.ndarray
             Random non-repetitive sampling.
         """
-<<<<<<< HEAD
-        try:
-            indices = numpy.random.choice(len(self.subset_indices), size=size, replace=self.replace)
-        except:
-            indices = numpy.random.choice(len(self.subset_indices), size=size, replace=True)
-=======
             
         length = len(self.subset_indices)
         if not self.replace:
@@ -52,7 +46,6 @@ class subsampler(multi_rv_frozen):
         
         indices = numpy.random.choice(length, size=size, replace=self.replace)
         indices = numpy.remainder(indices, len(self.subset_indices)) # TODO: come up with something more effective.
->>>>>>> master
         
         return self.data[self.subset_indices[indices]]
 
