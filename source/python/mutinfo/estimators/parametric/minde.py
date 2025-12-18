@@ -66,6 +66,50 @@ class GenerativeMIEstimator(pl.LightningModule):
             })
         except:
             raise ValueError(f"Could not log images to wandb, x_img shape is {x_img.shape}, y_img shape is {y_img.shape}, x_denoised shape is {x_img.shape}")
+    
+    def log_cifar_image(self, img, name):
+        import wandb
+        img = self.inverse_scaler(img)
+        # CIFAR images are 32x32x3, so total size per image is 3072
+        # img has shape (batch_size, total_features) where total_features = 2 * 3072
+        img = img.reshape(img.shape[0], 2, 3, 32, 32)
+        # denormalize - clip to [0, 1] range
+        img = img.clip(0, 1)
+        # Transpose to (batch_size, 2, 32, 32, 3) for wandb - channels last
+        img = img.permute(0, 1, 3, 4, 2)
+        
+        x_img = img[0, 0].detach().cpu().numpy()  # First image from first batch (32, 32, 3)
+        y_img = img[0, 1].detach().cpu().numpy()  # Second image from first batch (32, 32, 3)
+        
+        try:
+            self.logger.experiment.log({
+                f"{name}_x": wandb.Image(x_img),
+                f"{name}_y": wandb.Image(y_img),
+                "global_step": self.global_step
+            })
+        except:
+            raise ValueError(f"Could not log images to wandb, x_img shape is {x_img.shape}, y_img shape is {y_img.shape}")
+    
+    def log_image(self, img, name):
+        """Automatically choose between MNIST and CIFAR logging based on image dimensions."""
+        # MNIST: 28x28 grayscale -> 784 per image, total 1568 for pair
+        # CIFAR: 32x32x3 RGB -> 3072 per image, total 6144 for pair
+        total_features = img.shape[1]
+        
+        if total_features == 1568:  # MNIST
+            self.log_mnist_image(img, name)
+        elif total_features == 6144:  # CIFAR
+            self.log_cifar_image(img, name)
+        else:
+            # Generic fallback - try to infer from total size
+            if total_features % 2 == 0:
+                per_image_features = total_features // 2
+                if per_image_features == 784:  # 28x28
+                    self.log_mnist_image(img, name)
+                elif per_image_features == 3072:  # 32x32x3
+                    self.log_cifar_image(img, name)
+                else:
+                    print(f"Warning: Unknown image format with {total_features} total features, skipping image logging for {name}")
 
     def loss(self, x, y):
         
@@ -81,10 +125,10 @@ class GenerativeMIEstimator(pl.LightningModule):
             # Log both images separately with wandb
             if hasattr(self, 'logger') and self.logger is not None and hasattr(self.logger, 'experiment'):
                 if self.global_step % 1000 == 0:
-                    self.log_mnist_image(x_denoised, "x_denoised")
-                    self.log_mnist_image(xy_t, "xy_t")
-                    self.log_mnist_image(noise, "noise")
-                    self.log_mnist_image(score, "score")
+                    self.log_image(x_denoised, "x_denoised")
+                    self.log_image(xy_t, "xy_t")
+                    self.log_image(noise, "noise")
+                    self.log_image(score, "score")
                     self.log("score_norm", ret_dict['score_norm'], on_step=True, on_epoch=False, prog_bar=True)
                     self.log("noise_norm", ret_dict['noise_norm'], on_step=True, on_epoch=False, prog_bar=True)
 
