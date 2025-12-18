@@ -167,7 +167,6 @@ class CustomFlowDataModule(pl.LightningDataModule):
         """
         super().__init__()
         self.save_hyperparameters(ignore=['data_generator', 'prior_generator'])
-        
         self.data_generator = data_generator
         self.prior_generator = prior_generator
         self.n_train_samples = n_train_samples

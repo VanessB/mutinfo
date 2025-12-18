@@ -3,6 +3,7 @@
 import torch
 import functools
 import pytorch_lightning as pl
+import diffusers
 from hydra.utils import instantiate
 from mutinfo.distributions.generative.ema import EMA
 import matplotlib.pyplot as plt
@@ -94,6 +95,12 @@ class FlowLightningModule(pl.LightningModule):
     
     def forward(self, t, x_t):
         """Forward pass through the flow model."""
+        if isinstance(self.model, diffusers.UNet2DModel):
+            # For diffusers UNet2DModel, reshape input to (B, C, H, W)
+            t, x_t = self._process_t_and_x_for_diffusers_unet(t, x_t)
+            B = x_t.shape[0]
+            out = self.model(x_t, t).sample
+            return out.view(B, -1)  # Flatten back to (B, prior_dim)
         return self.model(t=t, x_t=x_t)
     
     def training_step(self, batch, batch_idx):
@@ -121,8 +128,7 @@ class FlowLightningModule(pl.LightningModule):
         
         return loss
     
-    def on_train_batch_end(self, outputs, batch, batch_idx):
-        """Update EMA after each training batch."""
+    def on_before_backward(self, loss):
         if self.use_ema:
             self.ema.update(self.model)
     
@@ -146,7 +152,13 @@ class FlowLightningModule(pl.LightningModule):
                 
                 # Denoise using the model
                 model = self.ema.module if self.use_ema else self.model
-                velocity = model(t, x_prior)
+                if isinstance(model, diffusers.UNet2DModel):
+                    t_processed, x_prior_processed = self._process_t_and_x_for_diffusers_unet(t, x_prior)
+                    B = x_prior_processed.shape[0]
+                    velocity = model(x_prior_processed, t_processed)
+                    velocity = velocity.sample.view(B, -1)
+                else:
+                    velocity = model(t, x_prior)
                 x_denoised = x_prior - velocity * 0.5
                 
                 # Log based on data type
@@ -179,7 +191,13 @@ class FlowLightningModule(pl.LightningModule):
         # Also compute validation loss with EMA model if available
         if self.use_ema:
             with torch.no_grad():
-                ema_pred_dx_t = self.ema.module(t, x_t)
+                if isinstance(self.ema.module, diffusers.UNet2DModel):
+                    t_processed, x_t_processed = self._process_t_and_x_for_diffusers_unet(t, x_t)
+                    B = x_t_processed.shape[0]
+                    ema_pred_dx_t = self.ema.module(x_t_processed, t_processed)
+                    ema_pred_dx_t = ema_pred_dx_t.sample.view(B, -1)
+                else:
+                    ema_pred_dx_t = self.ema.module(t, x_t)
                 ema_loss = self.loss_fn(ema_pred_dx_t, dx_t)
                 self.log('val_loss_ema', ema_loss, on_step=False, on_epoch=True, prog_bar=True)
         
@@ -253,6 +271,21 @@ class FlowLightningModule(pl.LightningModule):
     def sample_prior(self, n_samples):
         """Sample from the prior distribution (standard normal)."""
         return torch.randn(n_samples, self.prior_dim, device=self.device)
+    
+    def _process_t_and_x_for_diffusers_unet(self, t, x_t):
+        """Process time and input for diffusers UNet2DModel."""
+        B = x_t.shape[0]
+        if self.image_shape is not None:
+            C, H, W = self.image_shape
+        else:
+            # Try to infer square image shape
+            dim = int(np.sqrt(x_t.shape[1]))
+            C, H, W = 1, dim, dim  # Assume grayscale if unknown
+        
+        x_t_reshaped = x_t.view(B, C, H, W)
+        t_scaled = (t * 1000).squeeze(1)  # Scale time to [0, 1000] as expected by diffusers
+        
+        return t_scaled, x_t_reshaped
     
     def _create_sample_figure(self, samples, title='Samples'):
         """
@@ -421,13 +454,27 @@ class FlowLightningModule(pl.LightningModule):
             # Start from prior samples
             if prior_samples is not None:
                 x = prior_samples.to(self.device)
+                n_samples = x.shape[0]
             else:
                 x = self.sample_prior(n_samples)
-            # Use standard Euler integration
-            dt = 1.0 / num_steps
-            for step in range(num_steps):
-                t = torch.ones(n_samples, 1, device=self.device) * (1 - step * dt)
-                dx = model(t, x)
-                x = x - dx * dt
             
+            # Integrate from t=1 (prior) to t=0 (data) using midpoint method
+            time_steps = torch.linspace(1.0, 0.0, num_steps + 1, device=self.device)
+            for step in range(num_steps):
+                t_start = time_steps[step]
+                t_end = time_steps[step + 1]
+                t_start_batch = t_start.view(1, 1).expand(x.shape[0], 1)
+                try:
+                    x = x + (t_end - t_start) * self._forward_model(model, t=t_start_batch + (t_end - t_start) / 2, 
+                                                                    x_t=x + self._forward_model(model, x_t=x, t=t_start_batch) * (t_end - t_start) / 2)
+                except:
+                    raise ValueError(f"Incompatible shape: x={x.shape}, t_start_batch={t_start_batch.shape}, model expected input shape: {model.forward.__annotations__}")
             return x
+    
+    def _forward_model(self, model, t, x_t):
+        """Helper to call model forward, handling diffusers UNet if needed."""
+        if isinstance(model, diffusers.UNet2DModel):
+            t_processed, x_processed = self._process_t_and_x_for_diffusers_unet(t, x_t)
+            out = model(x_processed, t_processed).sample.view(x_t.shape[0], -1)
+            return out
+        return model(t=t, x_t=x_t)

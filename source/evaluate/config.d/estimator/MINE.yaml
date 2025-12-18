@@ -42,4 +42,4 @@ hydra:
   sweeper:
     params:
       #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.estimator.backbone_factory.hidden_dim: 16, 32, 64, 128
+      ++estimator.estimator.backbone_factory.hidden_dim: 128

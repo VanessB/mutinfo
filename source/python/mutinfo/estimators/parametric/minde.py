@@ -48,6 +48,7 @@ class GenerativeMIEstimator(pl.LightningModule):
         self.ema_decay = ema_decay
     
     def log_mnist_image(self, img, name):
+        return
         import wandb
         img = self.inverse_scaler(img)
         img = img.reshape(img.shape[0], 2, int(numpy.sqrt(img.shape[1]//2)), int(numpy.sqrt(img.shape[1]//2)))

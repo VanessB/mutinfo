@@ -177,7 +177,7 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
         super().__init__(*args, **kwargs)
 
         if (not len(X_shape) in [3, 4]) or (not len(Y_shape) in [3, 4]):
-            raise ValueError("Inputs shpuld be batches of images.")
+            raise ValueError("Inputs shpuld be batches of images, instead got input shapes {} and {}".format(X_shape, Y_shape))
             
         self.X_convolutions, X_final_shape = self.build_conv2d_tower(X_shape, n_filters)
         self.Y_convolutions, Y_final_shape = self.build_conv2d_tower(Y_shape, n_filters)

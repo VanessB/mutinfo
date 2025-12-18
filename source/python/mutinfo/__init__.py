@@ -6,5 +6,6 @@ Mutual information estimation benchmarks and tests.
 
 from . import utils
 from .distributions import base
+from .distributions import generative
 
 __name__ = "Mutual information estimation benchmarks and tests"

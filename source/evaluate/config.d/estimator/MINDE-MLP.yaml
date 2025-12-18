@@ -7,7 +7,7 @@ estimator:
   backbone_factory:
     _target_: mutinfo.estimators.parametric.model.GenericMLPDiffuser
     _partial_: true
-    hidden_dim: 16
+    hidden_dim: 64
   optimizer_factory:
     _target_: torch.optim.Adam
     _partial_: true
@@ -59,4 +59,4 @@ hydra:
   sweeper:
     params:
       #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.backbone_factory.hidden_dim: 16
+      ++estimator.backbone_factory.hidden_dim: 64
