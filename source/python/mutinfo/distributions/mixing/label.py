@@ -39,10 +39,13 @@ class subsampler(multi_rv_frozen):
         x : numpy.ndarray
             Random non-repetitive sampling.
         """
-        try:
-            indices = numpy.random.choice(len(self.subset_indices), size=size, replace=self.replace)
-        except:
-            indices = numpy.random.choice(len(self.subset_indices), size=size, replace=True)
+            
+        length = len(self.subset_indices)
+        if not self.replace:
+            length = (int(size / length) + 1) * length
+        
+        indices = numpy.random.choice(length, size=size, replace=self.replace)
+        indices = numpy.remainder(indices, len(self.subset_indices)) # TODO: come up with something more effective.
         
         return self.data[self.subset_indices[indices]]
 
@@ -78,9 +81,20 @@ def labeled_dataset_to_subsamplers(
         return subsampler(data, numpy.arange(0, len(data)))
 
 # TODO: does it belong here?
+def torchvision_default_transform(x: numpy.ndarray, to_CHW: bool=False) -> numpy.ndarray:   
+    x = x / 255
+    if len(x.shape) < 4:
+        x = x[:,None,...]
+    
+    if to_CHW:
+        x = x.transpose((0, 3, 1, 2))
+
+    return x
+
+# TODO: does it belong here?
 def torchvision_labeled_dataset_to_subsamplers(
     dataset,
-    transform=lambda x : (x / 255).unsqueeze(1),
+    transform=torchvision_default_transform,
     split_by_labels: bool=True,
 ) -> dict[Any, subsampler]:
     """
@@ -99,8 +113,8 @@ def torchvision_labeled_dataset_to_subsamplers(
     """
     
     return labeled_dataset_to_subsamplers(
-        transform(dataset.data).numpy(),
-        dataset.targets.numpy(),
+        transform(numpy.asarray(dataset.data)),
+        numpy.asarray(dataset.targets),
         split_by_labels
     )
 

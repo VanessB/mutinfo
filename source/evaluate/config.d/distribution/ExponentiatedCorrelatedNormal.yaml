@@ -1,0 +1,20 @@
+# @package _global_
+
+name:
+  distribution: ExponentiatedCorrelatedNormal
+
+distribution:
+  _target_: mutinfo.distributions.base.ExponentiatedCorrelatedNormal
+  mutual_information: ${processed.mutual_information}
+  dimensionality: ${raw.dimensionality}
+  exponent: 1.5
+
+key:
+  distribution: ${name.distribution}/dim=${distribution.dimensionality}/exponent=${distribution.exponent}/MI=${round:${raw.mutual_information}}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.nonzero_mutual_information}
+      ++raw.dimensionality: ${default_grid.dimensionality}
+      ++distribution.exponent: 1.5, 2, 3
