@@ -1,4 +1,4 @@
-n_runs: 1
+n_runs: 10
 seed: 42
 to_be_seeded:
   - basic

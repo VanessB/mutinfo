@@ -91,6 +91,79 @@ def torchvision_default_transform(x: numpy.ndarray, to_CHW: bool=False) -> numpy
 
     return x
 
+def embedding_with_resnet18_backbone(x: numpy.ndarray, checkpoint_path: str=None) -> numpy.ndarray:
+    """
+    Extract embeddings from CIFAR-10 images using a trained ResNet18 backbone.
+    
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Input images with shape (N, H, W, C) or (N, C, H, W).
+        Values should be in range [0, 1] or [0, 255].
+    checkpoint_path : str, optional
+        Path to the checkpoint file. If None, uses the best model from resnet18_checkpoints/.
+    
+    Returns
+    -------
+    embeddings : numpy.ndarray
+        Feature embeddings with shape (N, 512) for ResNet18.
+    """
+    import torch
+    import torch.nn as nn
+    import torchvision
+    from pathlib import Path
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Load checkpoint
+    if checkpoint_path is None:
+        checkpoint_path = Path(__file__).parent.parent.parent.parent.parent / 'resnet18_checkpoints' / 'best_model.pt'
+    
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Adapt backbone for CIFAR-10 (from supervised_learning_cifar10.py)
+    def adapt_backbone_to_CIFAR(backbone):
+        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=(3, 3), stride=1, padding=(1, 1))
+        backbone.maxpool = torch.nn.Identity()
+        return backbone
+    
+    # Create model
+    backbone = torchvision.models.resnet18(num_classes=128)
+    backbone = adapt_backbone_to_CIFAR(backbone)
+    backbone.fc = nn.Linear(512, 10)  # Match the saved model structure
+    
+    # Load weights - strip "backbone." prefix from checkpoint keys
+    state_dict = checkpoint['model_state_dict']
+    state_dict = {k.replace('backbone.', ''): v for k, v in state_dict.items() if k.startswith('backbone.')}
+    backbone.load_state_dict(state_dict)
+    
+    # Remove final classification layer to extract embeddings
+    backbone.fc = nn.Identity()
+    backbone = backbone.to(device)
+    backbone.eval()
+    
+    # Prepare input
+    if x.max() > 1.0:
+        x = x / 255.0
+    
+    # Convert to CHW format if needed
+    if x.shape[-1] == 3:  # HWC format
+        x = x.transpose((0, 3, 1, 2))
+    
+    # Normalize using CIFAR-10 statistics
+    mean = numpy.array([0.4914, 0.4822, 0.4465]).reshape(1, 3, 1, 1)
+    std = numpy.array([0.2023, 0.1994, 0.2010]).reshape(1, 3, 1, 1)
+    x = (x - mean) / std
+    
+    # Convert to tensor
+    x_tensor = torch.from_numpy(x).float().to(device)
+    
+    # Extract embeddings
+    with torch.no_grad():
+        embeddings = backbone(x_tensor)
+    
+    return embeddings.cpu().numpy()
+
 # TODO: does it belong here?
 def torchvision_labeled_dataset_to_subsamplers(
     dataset,
