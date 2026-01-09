@@ -4,9 +4,12 @@ __pycache__/
 *$py.class
 *.swp
 *.old
+*.sh
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+tmp.ipynb
 
 # Data and builds
 *cache
@@ -15,3 +18,19 @@ data
 models
 outputs
 *.csv
+*.sh
+mine/checkpoints/
+*.log
+*.targz
+*.zip
+check_csv_lines.py
+train_flow.ipynb
+*.yaml
+*.png
+*.txt
+*.ckpt
+*.jsonl
+*.json
+wandb/
+
+*.pt
