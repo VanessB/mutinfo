@@ -26,7 +26,7 @@ class _MINE_backbone(torchfd.mutual_information.MINE):
 
     @torchfd.mutual_information.MINE.marginalized
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return self.network(torch.concat([x, y], dim=1)) if self.concatenate else self.network(x, y)
+        return self.network(torch.concat([x, y], dim=-1)).squeeze() if self.concatenate else self.network(x, y).squeeze()
 
 
 class MINE(MutualInformationEstimator):
@@ -222,8 +222,13 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
 
     @torchfd.mutual_information.MINE.marginalized
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:
-        x = x.view(x.shape[0], -1, x.shape[-2], x.shape[-1])
-        y = y.view(y.shape[0], -1, y.shape[-2], y.shape[-1])
+        if x.shape[:-3] != y.shape[:-3]:
+            raise ValueError("expected `x` and `y` to have the same batch size.")
+            
+        original_batch_shape = x.shape[:-3]
+
+        x = x.reshape(-1, *x.shape[-3:])
+        y = y.reshape(-1, *y.shape[-3:])
             
         # Convolution layers.
         for conv2d in self.X_convolutions:
@@ -238,5 +243,7 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
 
         x = x.flatten(start_dim=1)
         y = y.flatten(start_dim=1)
+
+        result = self.dense(torch.cat((x, y), dim=1)).squeeze()
         
-        return self.dense(torch.cat((x, y), dim=1))
+        return result.view(original_batch_shape)

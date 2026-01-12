@@ -56,20 +56,17 @@ class slicing_based(JointTransform):
         """
 
         super().__init__([None])
-
-        #if not (isinstance(projection_dim, int) or isinstance(projection_dim, tuple)):
-        #    raise TypeError("Expected `projection_dim` to be of type `int` or `tuple`.")
             
         self.projection_dim = projection_dim
 
     def fit_projetion_dim(self, X) -> tuple[int]:
         if not isinstance(X, tuple):
-            raise ValueError("Expected `X` to be of type `tuple`")
+            raise ValueError("expected `X` to be of type `tuple`")
         
         if isinstance(self.projection_dim, int):
             projection_dim = (self.projection_dim,) * len(X)
         elif len(X) != len(self.projection_dim):
-            raise ValueError("Expected `X` and `self.projection_dim` to be of the same length")
+            raise ValueError("expected `X` and `self.projection_dim` to be of the same length")
         else:
             projection_dim = self.projection_dim
 

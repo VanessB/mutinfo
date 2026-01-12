@@ -20,6 +20,7 @@ tables = {
             "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
             "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
             "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -47,6 +48,7 @@ tables = {
             "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
             "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
             "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -74,6 +76,7 @@ tables = {
             "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
             "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
             "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -102,6 +105,7 @@ tables = {
             "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
             "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
             "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -155,6 +159,7 @@ tables = {
             "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
             "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
             "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -205,8 +210,8 @@ tables = {
 
     "mixing_labels": {
         "data_paths": {
-            "MINE-DV":     Path("./outputs/mixing/2025-10-20/Conv2d-MINE-DV"),
-            "MINE-NWJ":    Path("./outputs/mixing/2025-10-20/Conv2d-MINE-NWJ"),
+            "MINE-DV":     Path("./outputs/mixing/2025-12-14/Conv2d-MINE"),
+            "MINE-NWJ":    Path("./outputs/mixing/2025-12-14/Conv2d-NWJ"),
         },
         "target": {
             "function": lambda x : (x["processed.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -223,12 +228,12 @@ tables = {
         "estimators": {
             "MINE-DV": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
                 "priority": 0,
             },
             "MINE-NWJ": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
                 "priority": 0,
             },
         },
@@ -236,8 +241,8 @@ tables = {
 
     "mixing_multiplication": {
         "data_paths": {
-            "MINE-DV":     Path("./outputs/mixing/2025-10-20/Conv2d-MINE-DV"),
-            "MINE-NWJ":    Path("./outputs/mixing/2025-10-20/Conv2d-MINE-NWJ"),
+            "MINE-DV":     Path("./outputs/mixing/2025-12-14/Conv2d-MINE"),
+            "MINE-NWJ":    Path("./outputs/mixing/2025-12-14/Conv2d-NWJ"),
         },
         "target": {
             "function": lambda x : (x["processed.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -254,12 +259,12 @@ tables = {
         "estimators": {
             "MINE-DV": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
                 "priority": 0,
             },
             "MINE-NWJ": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_fraction": 0.5},
+                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
                 "priority": 0,
             },
         },
@@ -289,6 +294,8 @@ if __name__ == "__main__":
     #data = bebeziana.read(data_path, ["setup.yaml", "results.yaml"])
 
     for table_name, table_config in tables.items():
+        print(table_name)
+        
         final_data = []
         for estimator_name, estimator_config in table_config["estimators"].items():
             data_path = table_config["data_paths"][estimator_name] / "data.csv"
@@ -330,7 +337,7 @@ if __name__ == "__main__":
 
             final_data.append(data)
 
-        
+
         final_data = pandas.concat(final_data).sort_index()
 
         table = final_data.style \
