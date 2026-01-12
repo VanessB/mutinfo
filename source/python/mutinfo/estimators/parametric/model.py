@@ -133,6 +133,7 @@ class GenericConv2DDiffuser(torch.nn.Module):
         y = y.flatten(start_dim=1)
         
         xy = self.dense(torch.cat((x, y), dim=1))
+
         if std != None:
             xy = xy / std
         return xy
@@ -174,7 +175,7 @@ class GenericMLPDiffuser(torch.nn.Module):
 
 # UNet backbone for diffusion
 class UNet(torch.nn.Module):
-    def __init__(self, X_shape, Y_shape, hidden_dim=64, nb_var=2, norm_num_groups=8, name="mod"):
+    def __init__(self, X_shape, Y_shape, hidden_dim=64, nb_var=2, norm_num_groups=8, name="mod", layers_per_block=2):
         super(UNet, self).__init__()
         self.name =name
         self.X_shape = X_shape
@@ -189,7 +190,7 @@ class UNet(torch.nn.Module):
             sample_size=sample_size,
             in_channels=channels_x + channels_y,
             out_channels=channels_x + channels_y,
-            layers_per_block=2,
+            layers_per_block=layers_per_block,
             block_out_channels=(hidden_dim, hidden_dim * 2, hidden_dim * 4),
             down_block_types=("DownBlock2D", "DownBlock2D", "DownBlock2D"),
             up_block_types=("UpBlock2D", "UpBlock2D", "UpBlock2D"),
@@ -202,9 +203,9 @@ class UNet(torch.nn.Module):
         )
 
 
-    def forward(self, x, timestep, condition=None):
+    def forward(self, x, timestep, std=None):
         # Pass the latent through the U-Net for denoising
         x = x.reshape(-1, self.X_shape[0]+self.Y_shape[0], *self.X_shape[-2:])
         timestep = self.time_mlp(timestep).squeeze(-1)
         ret = self.unet(x, timestep)["sample"]
-        return ret
+        return ret.reshape(ret.shape[0], -1)

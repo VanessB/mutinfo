@@ -16,6 +16,9 @@ import bebeziana
 def ndarray_representer(dumper: yaml.Dumper, array: numpy.ndarray) -> yaml.Node:
     return dumper.represent_list(array.tolist())
 
+#OmegaConf.register_new_resolver("round", lambda x, n_digits=1: round(float(x), n_digits))
+OmegaConf.register_new_resolver("round", lambda x, n_digits=1: f"{float(x):.{int(n_digits)}f}")
+
 
 @hydra.main(version_base=None, config_path="./config.d", config_name="config")
 def run_test(config : DictConfig) -> None:
@@ -27,16 +30,40 @@ def run_test(config : DictConfig) -> None:
         setup = {}
         setup["estimator"]    = OmegaConf.to_container(config["estimator"], resolve=True)
         setup["distribution"] = OmegaConf.to_container(config["distribution"], resolve=True)
-        if "raw" in config.keys():
-            setup["raw"] = OmegaConf.to_container(config["distribution"], resolve=True)
-        
+
         setup["n_samples"] = int(config["n_samples"])
         setup["n_runs"]    = int(config["n_runs"])
+
+        optional_keys = ["raw", "processed", "name", "key"]
+        for key in optional_keys:
+            if key in config.keys():
+                setup[key] = OmegaConf.to_container(config[key], resolve=True)
+
+        setup["n_parameters"] = 0
+        if "parameters_counter" in config:
+            estimator       = instantiate(config["estimator"], _convert_="object")
+            random_variable = instantiate(config["distribution"], _convert_="object")
+            x, y            = random_variable.rvs(config["n_samples"])
+            
+            parameters_counter    = instantiate(config["parameters_counter"], _convert_="object")
+            setup["n_parameters"] = parameters_counter(estimator, x, y)
+
+            del estimator
+            del random_variable
+            del parameters_counter
+
+        path = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
+
+        if ("setup_only" in config.keys()) and config["setup_only"]:
+            with open(path / "setup.yaml", 'w') as file:
+                yaml.dump(setup, file, default_flow_style=False)
+
+            return
 
         # Results for post-processing.
         results = {}
         results["mutual_information"] = {"values": []}
-
+            
         for index in trange(config["n_runs"]):
             bebeziana.seed_everything(config["seed"] + index, to_be_seeded=config["to_be_seeded"])
             
@@ -53,10 +80,6 @@ def run_test(config : DictConfig) -> None:
         #    _est = _est.estimator
         #if isinstance(_est, ParametricMutualInformationEstimator):
         #    setup["n_parameters"] = _est.count_parameters(x, y)
-        setup["n_parameters"] = 0
-        if "parameters_counter" in config:
-            parameters_counter = instantiate(config["parameters_counter"], _convert_="object")
-            setup["n_parameters"] = parameters_counter(estimator, x, y)
 
         for statistic in ["mutual_information"]:
             # All values.
@@ -71,8 +94,6 @@ def run_test(config : DictConfig) -> None:
             results[statistic]["lower_quartile"] = float(numpy.quantile(results[statistic]["values"], 0.25))
             results[statistic]["upper_quartile"] = float(numpy.quantile(results[statistic]["values"], 0.75))
             results[statistic]["half_interquartile_range"] = results[statistic]["upper_quartile"] - results[statistic]["lower_quartile"]
-
-        path = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
         with open(path / "setup.yaml", 'w') as file:
             yaml.dump(setup, file, default_flow_style=False)

@@ -1,10 +1,17 @@
 # @package _global_
 
+name:
+  labels_distribution: NoiselessChannel
+
 labels_distribution:
   _target_: mutinfo.distributions.base.NoiselessChannel
+  mutual_information: ${processed.mutual_information}
   permute: True
+
+key:
+  labels_distribution: ${name.labels_distribution}/MI=${round:${labels_distribution.mutual_information}}
 
 hydra:
   sweeper:
     params:
-      ++labels_distribution.mutual_information: ${default_grid.mutual_information}
+      ++raw.mutual_information: ${default_grid.mutual_information}
