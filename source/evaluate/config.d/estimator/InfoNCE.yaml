@@ -44,4 +44,4 @@ hydra:
     params:
       #++estimator.estimator.estimate_size: null, 0.5
       ++estimator.estimator.backbone_factory.hidden_dim: 16, 32, 64, 128
-      ++estimator.estimator.estimate_batch_size: 64, 128, 256, 512
+      #++estimator.estimator.estimate_batch_size: 64, 128, 256, 512
