@@ -1,3 +1,4 @@
+import math
 import numpy
 
 from scipy.special import ndtr, ndtri
@@ -102,7 +103,7 @@ def _generate_cov_via_tridiagonal(
 
     if isinstance(dimensionality, int):
         dimensionality = (dimensionality, dimensionality)
-    elif not isinstance(dimensionality, tuple):
+    elif not (isinstance(dimensionality, tuple) or isinstance(dimensionality, list)):
         raise ValueError("Expected `dimensionality` to be of type `int` or `tuple[int, int]`")
     
     min_dim = min(dimensionality)
@@ -178,6 +179,50 @@ def CorrelatedUniform(*args, **kwargs) -> tools.mapped_multi_rv_frozen:
 
     # Use Gaussian CDF to acquire the uniform distribution.
     return tools.mapped_multi_rv_frozen(CorrelatedNormal(*args, **kwargs), lambda x, y: (ndtr(x), ndtr(y)), lambda x, y: (ndtri(x), ndtri(y)))
+
+
+def ExponentiatedCorrelatedNormal(
+    mutual_information: float,
+    dimensionality: int | tuple[int, int],
+    randomize_interactions: bool=True,
+    shuffle_interactions: bool=True,
+    exponent: float=1.5,
+) -> tools.mapped_multi_rv_frozen:
+    """
+    Create a long-tailed power-stretched multivariate correlated
+    normal distribution given the value of the mutual information
+    between the subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimensionality: int or tuple[int, int],
+        Dimensionality of the vectors.
+    randomize_correlation : bool, optional
+        Randomize component-wise mutual information
+        (the total value of mutual information stays fixed).
+        If not randomized, interactions are assigned uniformly.
+    shuffle_interactions : bool, optional
+        Use orthogonal matrices to randomize off-diagonal block of the
+        covariation matrix (mutual information stays fixed).
+    exponent : float, optional
+        Exponent used to stretch the tails (default: 1.5).
+
+    Returns
+    -------
+    random_variable : mapped.mapped_multi_rv_frozen
+        An instance of mapped.mapped_multi_rv_frozen
+        with the provided value of the mutual information
+        and ndtr (normal to uniform) mapping.
+    """
+
+    # Use exponentiation to stretch the tails.
+    return tools.mapped_multi_rv_frozen(
+        CorrelatedNormal(mutual_information, dimensionality, randomize_interactions, shuffle_interactions),
+        lambda x, y: (numpy.copysign(numpy.abs(x)**exponent, x), numpy.copysign(numpy.abs(y)**exponent, y)),
+        lambda x, y: (numpy.copysign(numpy.abs(x)**(1.0/exponent), x), numpy.copysign(numpy.abs(y)**(1.0/exponent), y))
+    )
 
 
 def CorrelatedStudent(
@@ -376,7 +421,76 @@ def MixtureUniform(
 
     if randomize_interactions:
         raise NotImplementedError("Interaction randomization is not implemented for `MixtureUniform` yet.")
-    else:
-        componentwise_mutual_information = mutual_information / dimensionality
+
+    componentwise_mutual_information = mutual_information / dimensionality
     
     return tools.stacked_multi_rv_frozen(mixture.mixed_with_randomized_parameters(componentwise_mutual_information, normalize), dimensionality)
+
+
+def NoiselessChannel(
+    mutual_information: float,
+    permute: bool=False
+) -> discrete.symmetric_noisy_channel:
+    """
+    Create a discrete noiseless channel with defined mutual information
+    between the input and output.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    permute : bool, optional
+        Apply random permutation.
+        
+    Returns
+    -------
+    random_variable : discrete.noiseless_channel
+        An instance of discrete.noiseless_channel
+        with the provided value of the mutual information.
+    """
+
+    probabilities = discrete.entropy_to_probabilities(mutual_information)
+    alphabet = numpy.arange(len(probabilities))
+
+    permutation = numpy.random.permutation(len(probabilities)) if permute else None
+    
+    return discrete.symmetric_noisy_channel(values=(alphabet, probabilities), permutation=permutation)
+
+
+def SymmetricNoisyChannel(
+    mutual_information: float,
+    permute: bool=False,
+    alphabet_size: int=None,
+) -> discrete.symmetric_noisy_channel:
+    """
+    Create a discrete symmetric noisy channel with defined mutual information
+    between the input and output.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    permute : bool, optional
+        Apply random permutation.
+    alphabet_size : int, optional
+        Alphabet size. If `None`, selected as `ceil(exp(mutual_information))`.
+        
+    Returns
+    -------
+    random_variable : discrete.noiseless_channel
+        An instance of discrete.noiseless_channel
+        with the provided value of the mutual information.
+    """
+
+    if alphabet_size is None:
+        alphabet_size = int(math.ceil(math.exp(mutual_information)))
+        if alphabet_size < 2:
+            alphabet_size = 2
+        
+    reroll_probability = discrete.mutual_information_to_reroll_probability(mutual_information, alphabet_size)
+    probabilities = numpy.ones(alphabet_size) / alphabet_size
+    alphabet = numpy.arange(alphabet_size)
+
+    permutation = numpy.random.permutation(alphabet_size) if permute else None
+    
+    return discrete.symmetric_noisy_channel(values=(alphabet, probabilities), reroll_probability=reroll_probability, permutation=permutation)

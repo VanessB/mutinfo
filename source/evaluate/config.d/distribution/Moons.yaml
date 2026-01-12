@@ -1,0 +1,21 @@
+# @package _global_
+distribution:
+  _target_: mutinfo.distributions.generative.Generative
+  shape: [2]
+  generative_model: 
+    _target_: mutinfo.distributions.generative.FlowLightningModule.load_from_checkpoint
+    checkpoint_path: /home/foresti/mutinfo/source/python/mutinfo/distributions/generative/checkpoints/last.ckpt
+  base_rv:
+    _target_: mutinfo.distributions.base.CorrelatedNormal
+    mutual_information: ${processed.mutual_information}
+    dimensionality: ${raw.dimensionality}
+    
+
+key:
+  distribution: moons_flow_matching/dim=${distribution.base_rv.dimensionality}/MI=${distribution.base_rv.mutual_information}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.mutual_information}
+      ++raw.dimensionality: ${default_grid.dimensionality}

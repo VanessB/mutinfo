@@ -1,10 +1,14 @@
 # @package _global_
 
+name:
+  distribution: GaussianQuantized2D
+
 distribution:
   _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
   base_rv:
     _target_: mutinfo.distributions.base.UniformlyQuantized
-    dimensionality: 2
+    mutual_information: ${processed.mutual_information}
+    dimensionality: ${raw.dimensionality}
     base_rv:
       _target_: scipy.stats.uniform
     normalize: true
@@ -18,22 +22,25 @@ distribution:
           _target_: mutinfo.distributions.images.field.symmetric_gaussian_field
           _partial_: true
         grid_shape:
-          - ${dimensionality}
-          - ${dimensionality}
+          - ${raw.image_dimensionality}
+          - ${raw.image_dimensionality}
       - _target_: mutinfo.distributions.images.field.draw_field
         _partial_: true
         field_function:
           _target_: mutinfo.distributions.images.field.symmetric_gaussian_field
           _partial_: true
         grid_shape:
-          - ${dimensionality}
-          - ${dimensionality}
+          - ${raw.image_dimensionality}
+          - ${raw.image_dimensionality}
 
-distribution_key: 2d_gaussian_${dimensionality}x${dimensionality}/MI=${distribution.base_rv.mutual_information}
+raw:
+  dimensionality: 2
+
+key:
+  distribution: ${name.distribution}/${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
 
 hydra:
   sweeper:
     params:
-      #~distribution: mutual_information # Delete parameter.
-      ++distribution.base_rv.mutual_information: ${default_grid.mutual_information}
-      ++dimensionality: ${default_grid.image_dimensionality}
+      ++raw.mutual_information: ${default_grid.mutual_information}
+      ++raw.image_dimensionality: ${default_grid.image_dimensionality}

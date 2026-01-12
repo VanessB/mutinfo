@@ -1,7 +1,13 @@
 # @package _global_
 
+name:
+  estimator: WKL
+
 estimator:
   _target_: mutinfo.estimators.knn.WKL
+
+key:
+  estimator: ${name.estimator}/k=${estimator.k_neighbors}
 
 hydra:
   sweeper:

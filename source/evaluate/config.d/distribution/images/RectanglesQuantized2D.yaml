@@ -1,0 +1,34 @@
+# @package _global_
+
+name:
+  distribution: Gaussian2D
+
+distribution:
+  _target_: mutinfo.distributions.tools.mapped_multi_rv_frozen
+  base_rv:
+    _target_: mutinfo.distributions.base.UniformlyQuantized
+    mutual_information: ${processed.mutual_information}
+    dimensionality: ${raw.dimensionality}
+    base_rv:
+      _target_: scipy.stats.uniform
+    normalize: true
+    randomize_interactions: false
+  mapping:
+    _target_: mutinfo.distributions.tools.cartesian_product_of_functions
+    _args_:
+      - _target_: builtins.eval
+        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${raw.image_dimensionality}, ${raw.image_dimensionality}))')"]
+      - _target_: builtins.eval
+        _args_: ["lambda x : eval('exec(\"from mutinfo.distributions.images.geometric import uniform_to_rectangle, draw_rectangle\") or draw_rectangle(uniform_to_rectangle(x, min_size=(0.2, 0.2)), (${raw.image_dimensionality}, ${raw.image_dimensionality}))')"]
+
+raw:
+  dimensionality: 4
+
+key:
+  distribution: ${name.distribution}/${raw.image_dimensionality}x${raw.image_dimensionality}/MI=${raw.mutual_information}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.mutual_information}
+      ++raw.image_dimensionality: ${default_grid.image_dimensionality}

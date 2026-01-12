@@ -1,0 +1,18 @@
+# @package _global_
+
+name:
+  labels_distribution: SymmetricNoisyChannel
+
+labels_distribution:
+  _target_: mutinfo.distributions.base.SymmetricNoisyChannel
+  mutual_information: ${processed.mutual_information}
+  alphabet_size: 10
+  permute: True
+
+key:
+  labels_distribution: ${name.labels_distribution}/MI=${round:${labels_distribution.mutual_information}}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.mutual_information}

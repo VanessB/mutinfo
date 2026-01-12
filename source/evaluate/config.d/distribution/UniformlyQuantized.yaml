@@ -1,15 +1,20 @@
 # @package _global_
 
+name:
+  distribution: UniformlyQuantized
+
 distribution:
   _target_: mutinfo.distributions.base.UniformlyQuantized
   mutual_information: ${processed.mutual_information}
+  dimensionality: ${raw.dimensionality}
   base_rv:
     _target_: scipy.stats.norm
 
-distribution_key: dim=${distribution.dimensionality}/MI=${raw.mutual_information}
+key:
+  distribution: ${name.distribution}/dim=${distribution.dimensionality}/MI=${round:${raw.mutual_information}}
 
 hydra:
   sweeper:
     params:
       ++raw.mutual_information: ${default_grid.mutual_information}
-      ++distribution.dimensionality: ${default_grid.dimensionality}
+      ++raw.dimensionality: ${default_grid.dimensionality}
