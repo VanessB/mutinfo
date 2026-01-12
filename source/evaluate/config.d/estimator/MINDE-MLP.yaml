@@ -3,7 +3,7 @@
 estimator:
   _target_: mutinfo.estimators.parametric.minde.GenerativeMIEstimator
   name: MINDE-Conv2d
-  variant: j
+  variant: c
   backbone_factory:
     _target_: mutinfo.estimators.parametric.model.GenericMLPDiffuser
     _partial_: true

@@ -1,0 +1,29 @@
+n_runs: 3
+seed: 42
+to_be_seeded:
+  - basic
+  - numpy
+  - torch
+
+default_grid:
+  mutual_information: 0.5, 1.0
+  nonzero_mutual_information: 0.5, 1.0
+  dimensionality: 80, 160 #20, 40, 80, 160
+
+processed:
+  mutual_information:
+    _target_: builtins.float.__mul__
+    _args_:
+      - ${raw.mutual_information}
+      - ${raw.dimensionality}
+
+hydra:
+  mode: MULTIRUN
+  sweep:
+    dir: outputs/highdim/TRE/${now:%Y-%m-%d}
+    subdir: ${key.estimator}/${key.distribution}/N=${n_samples}/${now:%Y-%m-%d_%H-%M-%S}_${hydra.job.num}
+  sweeper:
+    max_batch_size: 100 # Makes startup faster, see https://github.com/facebookresearch/hydra/issues/1324.
+    params:
+      ++n_samples: 110000
+      ++distribution.randomize_interactions: false

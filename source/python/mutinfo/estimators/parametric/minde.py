@@ -1,13 +1,11 @@
 import pytorch_lightning as pl
 from omegaconf import DictConfig
-from . import infosedd_utils
 from . import minde_utils
 from functools import partial
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from . import graph_lib
-from . import noise_lib
 from . import sde_lib
+from . import ema
 import time
 import psutil
 import hydra
@@ -24,19 +22,19 @@ class GenerativeMIEstimator(pl.LightningModule):
                  trainer: pl.Trainer,
                  logger = None,
                  sde : sde_lib.VP_SDE = None,
-                 noise: noise_lib.Noise = None,
-                 graph: graph_lib.Graph = None,
                  train_batch_size: int=512,
                  estimate_batch_size: int=512,
                  estimate_fraction: float=0.5,
                  variant: str="c",
                  is_parametric_marginal: bool=False,
-                 sampling_eps: float=0.001):
+                 sampling_eps: float=0.001,
+                 use_ema: bool=True,
+                 ema_decay: float=0.9999,
+                 ckpt_path: str = None,):
         super().__init__()
+        self.ckpt_path = ckpt_path
         self.estimator_name = name.lower()
         self.sde = sde
-        self.noise = noise
-        self.graph = graph
         self.variant = variant
         self.backbone_factory = backbone_factory
         self.optimizer_factory = optimizer_factory
@@ -46,13 +44,94 @@ class GenerativeMIEstimator(pl.LightningModule):
         self.estimate_fraction = estimate_fraction
         self.sampling_eps = sampling_eps
         self.is_parametric_marginal = is_parametric_marginal
+        self.use_ema = use_ema
+        self.ema_decay = ema_decay
+    
+    def log_mnist_image(self, img, name):
+        import wandb
+        img = self.inverse_scaler(img)
+        img = img.reshape(img.shape[0], 2, int(numpy.sqrt(img.shape[1]//2)), int(numpy.sqrt(img.shape[1]//2)))
+        # denormalize
+        img = img.clip(0,1)
+        img = img * 255
+        # Assuming x_denoised has shape (batch_size, 2, h, w)
+        x_img = img[0, 0].detach().cpu().numpy()  # First image from first batch
+        y_img = img[0, 1].detach().cpu().numpy()  # Second image from first batch
+
+        try:
+            self.logger.experiment.log({
+                f"{name}_x": wandb.Image(x_img),
+                f"{name}_y": wandb.Image(y_img),
+                "global_step": self.global_step
+            })
+        except:
+            raise ValueError(f"Could not log images to wandb, x_img shape is {x_img.shape}, y_img shape is {y_img.shape}, x_denoised shape is {x_img.shape}")
+    
+    def log_cifar_image(self, img, name):
+        import wandb
+        img = self.inverse_scaler(img)
+        # CIFAR images are 32x32x3, so total size per image is 3072
+        # img has shape (batch_size, total_features) where total_features = 2 * 3072
+        img = img.reshape(img.shape[0], 2, 3, 32, 32)
+        # denormalize - clip to [0, 1] range
+        img = img.clip(0, 1)
+        # Transpose to (batch_size, 2, 32, 32, 3) for wandb - channels last
+        img = img.permute(0, 1, 3, 4, 2)
+        
+        x_img = img[0, 0].detach().cpu().numpy()  # First image from first batch (32, 32, 3)
+        y_img = img[0, 1].detach().cpu().numpy()  # Second image from first batch (32, 32, 3)
+        
+        try:
+            self.logger.experiment.log({
+                f"{name}_x": wandb.Image(x_img),
+                f"{name}_y": wandb.Image(y_img),
+                "global_step": self.global_step
+            })
+        except:
+            raise ValueError(f"Could not log images to wandb, x_img shape is {x_img.shape}, y_img shape is {y_img.shape}")
+    
+    def log_image(self, img, name):
+        """Automatically choose between MNIST and CIFAR logging based on image dimensions."""
+        # MNIST: 28x28 grayscale -> 784 per image, total 1568 for pair
+        # CIFAR: 32x32x3 RGB -> 3072 per image, total 6144 for pair
+        total_features = img.shape[1]
+        
+        if total_features == 1568:  # MNIST
+            self.log_mnist_image(img, name)
+        elif total_features == 6144:  # CIFAR
+            self.log_cifar_image(img, name)
+        else:
+            # Generic fallback - try to infer from total size
+            if total_features % 2 == 0:
+                per_image_features = total_features // 2
+                if per_image_features == 784:  # 28x28
+                    self.log_mnist_image(img, name)
+                elif per_image_features == 3072:  # 32x32x3
+                    self.log_cifar_image(img, name)
+                else:
+                    print(f"Warning: Unknown image format with {total_features} total features, skipping image logging for {name}")
 
     def loss(self, x, y):
-        if 'infosedd' in self.estimator_name:
-            loss = self._loss(self.backbone, x, y)
-        elif 'minde' in self.estimator_name:
+        
+        if 'minde' in self.estimator_name:
             backbone_score_forward = partial(minde_utils.score_forward, self.backbone)
-            loss = self.sde.train_step(x, y, backbone_score_forward).mean()
+            loss, ret_dict = self.sde.train_step(x, y, backbone_score_forward, debug=False)
+            loss = loss.mean()
+            x_denoised = ret_dict['x_denoised']
+            xy_t = ret_dict['xy_t']
+            noise = ret_dict['noise']
+            score = torch.abs(ret_dict['score'])
+            
+            # Log both images separately with wandb
+            if hasattr(self, 'logger') and self.logger is not None and hasattr(self.logger, 'experiment'):
+                if self.global_step % 1000 == 0:
+                    self.log_image(x_denoised, "x_denoised")
+                    self.log_image(xy_t, "xy_t")
+                    self.log_image(noise, "noise")
+                    self.log_image(score, "score")
+                    self.log("score_norm", ret_dict['score_norm'], on_step=True, on_epoch=False, prog_bar=True)
+                    self.log("noise_norm", ret_dict['noise_norm'], on_step=True, on_epoch=False, prog_bar=True)
+
         else:
             raise NotImplementedError(f"Estimator {self.estimator_name} not implemented.")
         
@@ -66,6 +145,17 @@ class GenerativeMIEstimator(pl.LightningModule):
         self.log("loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
     
+    def _sample(self, batch_size):
+        if 'minde' in self.estimator_name:
+            return self.sde.sample(batch_size, self.total_X_size, self.total_Y_size, device=self.device)
+    
+    def on_before_backward(self, loss):
+        assert self.use_ema, "EMA not used, cannot update."
+        if self.ema_backbone:
+            self.ema_backbone.update(self.backbone)
+        else:
+            raise ValueError("EMA backbone not initialized.")
+
     def on_validation_epoch_start(self):
         self.epoch_start_time = time.time()
         self.mi_values = []
@@ -88,10 +178,9 @@ class GenerativeMIEstimator(pl.LightningModule):
         x, y = batch
         x = x.reshape(x.shape[0], -1)
         y = y.reshape(y.shape[0], -1)
-        if 'infosedd' in self.estimator_name:
-            mi = self._mutinfo_fn(self.backbone, x, y)
-        elif 'minde' in self.estimator_name:
-            mi = self._mutinfo_fn(self.backbone, x, y)
+        if 'minde' in self.estimator_name:
+            score = self.ema_backbone.module if self.use_ema else self.score
+            mi = self._mutinfo_fn(score, x, y)
         else:
             raise NotImplementedError(f"Estimator {self.estimator_name} not implemented.")
         self.log("MI", mi, on_step=False, on_epoch=True, prog_bar=True)
@@ -106,22 +195,13 @@ class GenerativeMIEstimator(pl.LightningModule):
     def _setup_estimator(self):
         self.results = {"mi_history": [], "runtime": [], "memory": []}
         self.epoch_start_time = None
-        if 'infosedd' in self.estimator_name:
-            self.graph.dim = self.alphabet_size
-            self.alphabet_size += 1
-            print(self.graph.dim, self.alphabet_size)
-            self._loss = infosedd_utils.get_loss_fn(noise=self.noise,\
-                                                    graph=self.graph,\
-                                                    train=True,\
-                                                    is_parametric_marginal=self.is_parametric_marginal,\
-                                                    variant=self.variant,\
-                                                    sampling_eps=self.sampling_eps)
-            self._mutinfo_fn = infosedd_utils.get_mutinfo_step_fn(self.graph, self.noise, self.variant)
-            self.is_parametric_marginal = self.is_parametric_marginal
-            self.backbone = self.backbone_factory(X_shape=self.x_shape, Y_shape=self.y_shape, alphabet_size=self.alphabet_size).to(self.device)
-        elif 'minde' in self.estimator_name:
+        if 'minde' in self.estimator_name:
             self._mutinfo_fn = minde_utils.get_mutinfo_step_fn(self.sde, self.sde.importance_sampling, self.variant, self.sampling_eps)
             self.backbone = self.backbone_factory(X_shape=self.x_shape, Y_shape=self.y_shape).to(self.device)
+            if self.use_ema:
+                self.ema_backbone = ema.EMA(self.backbone, decay=self.ema_decay)
+            else:
+                self.ema_backbone = None
         else:
             raise NotImplementedError(f"Estimator {self.estimator_name} not implemented.")
     
@@ -141,10 +221,6 @@ class GenerativeMIEstimator(pl.LightningModule):
             Estimated value of mutual information.
         """
 
-        if "infosedd" in self.estimator_name:
-            x = x*255
-            y = y*255
-
         self.x_shape = x.shape[1:]
         self.y_shape = y.shape[1:]
 
@@ -156,35 +232,33 @@ class GenerativeMIEstimator(pl.LightningModule):
         else:
             train_x, estimate_x, train_y, estimate_y = train_test_split(x, y, test_size=self.estimate_fraction)
 
-        if "infosedd" in self.estimator_name:
-            train_dataset = torch.utils.data.TensorDataset(
-                torch.tensor(train_x, dtype=torch.long),
-                torch.tensor(train_y, dtype=torch.long),
-            )
-        else:
+        train_dataset = torch.utils.data.TensorDataset(
+            torch.tensor(train_x, dtype=torch.float32),
+            torch.tensor(train_y, dtype=torch.float32),
+        )
+            
+
+        if "minde" in self.estimator_name:
+            self.scaler = lambda x: x
+            self.inverse_scaler = lambda x: x
+            train_x = self.scaler(train_x)
+            train_y = self.scaler(train_y)
+            estimate_x = self.scaler(estimate_x)
+            estimate_y = self.scaler(estimate_y)
             train_dataset = torch.utils.data.TensorDataset(
                 torch.tensor(train_x, dtype=torch.float32),
                 torch.tensor(train_y, dtype=torch.float32),
             )
-
-        if "minde" in self.estimator_name:
-            scaler_x = StandardScaler()
-            scaler_y = StandardScaler()
-            train_x = scaler_x.fit_transform(train_x.reshape(-1, self.total_X_size))
-            train_y = scaler_y.fit_transform(train_y.reshape(-1, self.total_Y_size))
-            estimate_x = scaler_x.transform(estimate_x.reshape(-1, self.total_X_size))
-            estimate_y = scaler_y.transform(estimate_y.reshape(-1, self.total_Y_size))            
-            
-        if "infosedd" in self.estimator_name:
-            estimate_dataset = torch.utils.data.TensorDataset(
-                torch.tensor(estimate_x, dtype=torch.long),
-                torch.tensor(estimate_y, dtype=torch.long),
-            )
-        else:
             estimate_dataset = torch.utils.data.TensorDataset(
                 torch.tensor(estimate_x, dtype=torch.float32),
                 torch.tensor(estimate_y, dtype=torch.float32),
-            )
+            ) 
+            
+        
+        estimate_dataset = torch.utils.data.TensorDataset(
+            torch.tensor(estimate_x, dtype=torch.float32),
+            torch.tensor(estimate_y, dtype=torch.float32),
+        )
 
         train_dataloader = torch.utils.data.DataLoader(
             train_dataset,
@@ -200,20 +274,14 @@ class GenerativeMIEstimator(pl.LightningModule):
             pin_memory=True,
         )
 
-        if "infosedd" in self.estimator_name:
-            self.alphabet_size = int(max(x.max(), y.max()) + 1)
-            if isinstance(self.graph, graph_lib.Absorbing):
-                self.alphabet_size += 1
-
         self._setup_estimator()
-
-        
 
         print(f"Starting run with a model with {sum(p.numel() for p in self.backbone.parameters())} parameters")
 
         self.trainer.fit(self, 
                     train_dataloaders=train_dataloader,
                     val_dataloaders=estimate_dataloader,
+                    ckpt_path=self.ckpt_path
                     )
                     
 

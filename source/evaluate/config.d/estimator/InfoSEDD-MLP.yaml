@@ -51,9 +51,3 @@ estimator:
 parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
-
-hydra:
-  sweeper:
-    params:
-      #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.backbone_factory.hidden_dim: 64

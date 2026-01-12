@@ -1,0 +1,16 @@
+# @package _global_
+
+name:
+  modulation_distribution: CorrelatedUniform
+
+modulation_distribution:
+  _target_: mutinfo.distributions.base.CorrelatedUniform
+  mutual_information: ${processed.mutual_information}
+
+key:
+  modulation_distribution: ${name.modulation_distribution}/MI=${modulation_distribution.mutual_information}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.mutual_information}

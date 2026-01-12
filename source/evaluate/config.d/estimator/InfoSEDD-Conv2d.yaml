@@ -23,7 +23,7 @@ estimator:
     id: null
   trainer:
     _target_: pytorch_lightning.Trainer
-    max_steps: 100001
+    max_steps: 1000001
     val_check_interval: 5000
     check_val_every_n_epoch: null
     limit_val_batches: 1.0
@@ -52,9 +52,3 @@ estimator:
 parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
-
-hydra:
-  sweeper:
-    params:
-      #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.backbone_factory.hidden_dim: 16
