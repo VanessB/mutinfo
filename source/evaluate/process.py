@@ -136,11 +136,11 @@ tables = {
                 "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
                 "priority": 1,
             },
-            # "InfoNCE": {
-            #     "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-            #     "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
-            #     "priority": 1,
-            # },
+            "InfoNCE": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+                "fixed_columns": {},
+                "priority": 1,
+            },
             # "MINDE-c": {
             #     "min_columns": ["estimator_arch","mi_sigma"],
             #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
@@ -190,11 +190,11 @@ tables = {
                 "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
                 "priority": 1,
             },
-            # "InfoNCE": {
-            #     "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-            #     "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
-            #     "priority": 1,
-            # },
+            "InfoNCE": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+                "fixed_columns": {},
+                "priority": 1,
+            },
             # "MINDE-c": {
             #     "min_columns": ["estimator_arch","mi_sigma"],
             #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
