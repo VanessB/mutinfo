@@ -221,14 +221,12 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
         return convolutions, shape
 
     @torchfd.mutual_information.MINE.marginalized
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.tensor:        
         if x.shape[:-3] != y.shape[:-3]:
             raise ValueError("expected `x` and `y` to have the same batch size.")
-            
-        original_batch_shape = x.shape[:-3]
 
-        x = x.reshape(-1, *x.shape[-3:])
-        y = y.reshape(-1, *y.shape[-3:])
+        x = x.view(x.shape[0], -1, *x.shape[-2:])
+        y = y.view(y.shape[0], -1, *y.shape[-2:])
             
         # Convolution layers.
         for conv2d in self.X_convolutions:
@@ -246,4 +244,4 @@ class GenericConv2dClassifier(torchfd.mutual_information.MINE):
 
         result = self.dense(torch.cat((x, y), dim=1)).squeeze()
         
-        return result.view(original_batch_shape)
+        return result

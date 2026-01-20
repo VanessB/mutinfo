@@ -66,7 +66,7 @@ def run_test(config : DictConfig) -> None:
             
         for index in trange(config["n_runs"]):
             bebeziana.seed_everything(config["seed"] + index, to_be_seeded=config["to_be_seeded"])
-
+            
             estimator       = instantiate(config["estimator"], _convert_="object")
             random_variable = instantiate(config["distribution"], _convert_="object")
 

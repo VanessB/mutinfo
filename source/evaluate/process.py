@@ -17,10 +17,11 @@ distribution_names = {
 tables = {
     "lowdim_kNN_KSG_10000": {
         "data_paths": {
-            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
+            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
+            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -45,10 +46,11 @@ tables = {
     
     "lowdim_kNN_WKL_10000": {
         "data_paths": {
-            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
+            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
+            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -73,10 +75,11 @@ tables = {
     
     "lowdim_DD_MINDE-DV": {
         "data_paths": {
-            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
+            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
+            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -102,10 +105,11 @@ tables = {
 
     "mi_estimate:base:distribution_method:GT:1k": {
         "data_paths": {
-            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
+            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
+            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -136,11 +140,21 @@ tables = {
                 "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
                 "priority": 1,
             },
-            "InfoNCE": {
+            "MINE-NWJ": {
                 "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {},
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
                 "priority": 1,
             },
+            "InfoNCE": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 2,
+            },
+            # "InfoNCE": {
+            #     "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+            #     "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
+            #     "priority": 1,
+            # },
             # "MINDE-c": {
             #     "min_columns": ["estimator_arch","mi_sigma"],
             #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
@@ -156,10 +170,11 @@ tables = {
     
     "mi_estimate:base:distribution_method:GT:10k": {
         "data_paths": {
-            "KSG":     Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":     Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV": Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "InfoNCE": Path("./outputs/lowdim/2025-10-20/InfoNCE"),
+            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
+            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
+            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
+            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
+            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -190,10 +205,15 @@ tables = {
                 "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
                 "priority": 1,
             },
+            "MINE-NWJ": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 1,
+            },
             "InfoNCE": {
                 "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {},
-                "priority": 1,
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 2,
             },
             # "MINDE-c": {
             #     "min_columns": ["estimator_arch","mi_sigma"],
@@ -228,12 +248,12 @@ tables = {
         "estimators": {
             "MINE-DV": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
+                "fixed_columns": {"estimator.estimate_size": 0.5},
                 "priority": 0,
             },
             "MINE-NWJ": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
+                "fixed_columns": {"estimator.estimate_size": 0.5},
                 "priority": 0,
             },
         },
@@ -259,12 +279,12 @@ tables = {
         "estimators": {
             "MINE-DV": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
+                "fixed_columns": {"estimator.estimate_size": 0.5},
                 "priority": 0,
             },
             "MINE-NWJ": {
                 "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": dict(), #{"estimator.estimate_fraction": 0.5},
+                "fixed_columns": {"estimator.estimate_size": 0.5},
                 "priority": 0,
             },
         },
