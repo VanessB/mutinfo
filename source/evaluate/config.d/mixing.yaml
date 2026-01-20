@@ -9,7 +9,7 @@ raw:
   mutual_information: 0.0
 
 processed:
-  mutual_information: ${raw.mutual_information}
+  mutual_information: ${default_grid.mutual_information}
 
 hydra:
   mode: MULTIRUN

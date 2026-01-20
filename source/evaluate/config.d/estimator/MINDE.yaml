@@ -1,30 +1,21 @@
 # @package _global_
 
-name:
-  estimator: InfoNCE
-
 estimator:
   _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
   estimator:
-    _target_: mutinfo.estimators.parametric.mine.MINE
+    _target_: mutinfo.estimators.parametric.minde.MINDE
     backbone_factory:
-      _target_: mutinfo.estimators.parametric.mine.GenericMLPClassifier
+      _target_: mutinfo.estimators.parametric.minde.GenericMLPDiffuser
       _partial_: true
-      hidden_dim: 128
+      hidden_dim: 16
     optimizer_factory:
       _target_: torch.optim.Adam
       _partial_: true
       lr: 1.0e-3
-    loss_factory:
-      _target_: torchfd.loss.InfoNCELoss
-      _partial_: true
-    marginalizer_factory:
-      _target_: torchfd.mutual_information.OuterProductMarginalizer
-      _partial_: true
     n_train_steps: 10000
     train_batch_size: 512
     estimate_batch_size: 512
-    estimate_size: 0.5 # `null` for no splitting.
+    estimate_fraction: 0.5 # `null` for no splitting.
     device: "cuda"
   transform:
     _target_: mutinfo.estimators.base.JointTransform
@@ -36,12 +27,8 @@ parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.estimator.backbone_factory(x.shape, y.shape).parameters())"]
 
-key:
-  estimator: ${name.estimator}/hidden=${estimator.estimator.backbone_factory.hidden_dim}/bs=${estimator.estimator.estimate_batch_size}
-
 hydra:
   sweeper:
     params:
-      #++estimator.estimator.estimate_size: null, 0.5
+      #++estimator.estimator.estimate_fraction: null, 0.5
       ++estimator.estimator.backbone_factory.hidden_dim: 16, 32, 64, 128
-      #++estimator.estimator.estimate_batch_size: 64, 128, 256, 512
