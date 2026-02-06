@@ -23,11 +23,22 @@ def conditional_VelocityModelMLP_wrapper(
 
     return backbone_factory(input_dim=input_dim, condition_dim=condition_dim, **kwargs)
 
+def joint_VelocityModelMLP_wrapper(
+    x_shape: tuple[int],
+    y_shape: tuple[int],
+    backbone_factory: torch.nn.Module=VelocityModelMLP,
+    **kwargs,
+) -> torch.nn.Module:
+    condition_dim = 0
+    input_dim = math.prod(y_shape[1:]) + math.prod(x_shape[1:])
 
-class cFMMI(MutualInformationEstimator):
+    return backbone_factory(input_dim=input_dim, condition_dim=condition_dim, **kwargs)
+
+
+class FMMI(MutualInformationEstimator):
     def __init__(
         self,
-        parameters: dict()={},
+        estimator_factory: Callable[[], fmmi.estimator.mi.FMMI]=None,
         backbone_factory: Callable[[], torch.nn.Module]=None,
         optimizer_factory: Callable[[], torch.optim.Optimizer]=None,
         n_train_steps: int=10000,
@@ -41,7 +52,9 @@ class cFMMI(MutualInformationEstimator):
     ) -> None:
         super().__init__(**kwargs)
 
-        self.parameters = parameters
+        self.estimator_factory = estimator_factory
+        if self.estimator_factory is None:
+            self.estimator_factory = fmmi.estimator.mi.cFMMI
 
         self.backbone_factory = backbone_factory
         if self.backbone_factory is None:
@@ -110,12 +123,11 @@ class cFMMI(MutualInformationEstimator):
             pin_memory=False,
         )
 
-        estimator = fmmi.estimator.mi.cFMMI(
+        estimator = self.estimator_factory(
             backbone = self.backbone_factory(
                 x.shape,
                 y.shape,
             ),
-            **self.parameters
         ).to(self.device)
         optimizer = self.optimizer_factory(estimator.parameters())
 

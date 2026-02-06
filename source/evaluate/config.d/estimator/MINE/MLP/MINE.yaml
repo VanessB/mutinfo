@@ -5,6 +5,11 @@ name:
 
 estimator:
   _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
+  transform:
+    _target_: mutinfo.estimators.base.JointTransform
+    transforms:
+    - _target_: sklearn.preprocessing.RobustScaler
+    - _target_: sklearn.preprocessing.RobustScaler
   estimator:
     _target_: mutinfo.estimators.parametric.mine.MINE
     backbone_factory:
@@ -25,11 +30,6 @@ estimator:
     estimate_batch_size: 512
     estimate_size: 0.5 # `null` for no splitting.
     device: "cuda"
-  transform:
-    _target_: mutinfo.estimators.base.JointTransform
-    transforms:
-    - _target_: sklearn.preprocessing.RobustScaler
-    - _target_: sklearn.preprocessing.RobustScaler
 
 parameters_counter:
   _target_: builtins.eval

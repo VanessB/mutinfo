@@ -1,0 +1,51 @@
+# @package _global_
+
+name:
+  estimator: jFMMI
+
+estimator:
+  _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
+  transform:
+    _target_: mutinfo.estimators.base.JointTransform
+    transforms:
+    - _target_: sklearn.preprocessing.RobustScaler
+    - _target_: sklearn.preprocessing.RobustScaler
+  estimator:
+    _target_: mutinfo.estimators.parametric.fmmi.FMMI
+    estimator_factory:
+      _target_: fmmi.estimator.mi.jFMMI
+      _partial_: true
+      marginalizer:
+        _target_: fmmi.estimator.mi.generate_permutation
+        _partial_: true
+    backbone_factory:
+      _target_: mutinfo.estimators.parametric.fmmi.joint_VelocityModelMLP_wrapper
+      _partial_: true
+      hidden_dim: 512
+      dropout: 0.01
+    optimizer_factory:
+      _target_: torch.optim.AdamW
+      _partial_: true
+      lr: 1.0e-3
+      weight_decay: 0.0
+    n_train_steps: 10000
+    train_batch_size: 512
+    estimate_batch_size: 512
+    estimate_size: 0.5 # `null` for no splitting.
+    device: "cuda"
+
+parameters_counter:
+  _target_: builtins.eval
+  _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.estimator.backbone_factory(x.shape, y.shape).parameters())"]
+
+key:
+  estimator: ${name.estimator}/hidden=${estimator.estimator.backbone_factory.hidden_dim}
+
+hydra:
+  sweeper:
+    params:
+      ++estimator.estimator.estimator_factory.reverse: False, True
+      ++estimator.estimator.backbone_factory.dropout: 0.01, 0.05
+      #++estimator.estimator.optimizer_factory.weight_decay: 0.0, 1.0e-4
+      #++estimator.estimator.backbone_factory.hidden_dim: 128, 256, 512
+      #++estimator.estimator.parameters.marginalizer._target_: fmmi.estimator.mi.generate_permutation, fmmi.estimator.mi.generate_derangement

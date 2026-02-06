@@ -175,6 +175,11 @@ tables = {
             "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
             "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
             "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
+            "cFMMI":    Path("./outputs/lowdim/2026-01-22/cFMMI"),
+            "cFMMI-norm":    Path("./outputs/lowdim/2026-01-23/cFMMI"),
+            "cFMMI-small":    Path("./outputs/lowdim/2026-01-24/cFMMI"),
+            "cFMMI-big":    Path("./outputs/lowdim/2026-01-25/cFMMI"),
+            "cFMMI-long":    Path("./outputs/lowdim/2026-01-26/cFMMI"),
         },
         "target": {
             "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
@@ -214,6 +219,31 @@ tables = {
                 "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
                 "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
                 "priority": 2,
+            },
+            "cFMMI": {
+                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.dropout", "estimator.parameters.reverse"],
+                "fixed_columns": {"estimator.estimate_size": 0.5},
+                "priority": 3,
+            },
+            "cFMMI-norm": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 3,
+            },
+            "cFMMI-small": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 3,
+            },
+            "cFMMI-big": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 3,
+            },
+            "cFMMI-long": {
+                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
+                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
+                "priority": 3,
             },
             # "MINDE-c": {
             #     "min_columns": ["estimator_arch","mi_sigma"],
