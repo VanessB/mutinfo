@@ -6,7 +6,7 @@ to_be_seeded:
   - torch
 
 default_grid:
-  mutual_information: range(1.0, 11.0)
+  mutual_information: range(0.0, 11.0)
   nonzero_mutual_information: range(1.0, 11.0)
   dimensionality: range(1, 4)
 
@@ -21,4 +21,4 @@ hydra:
   sweeper:
     max_batch_size: 100 # Makes startup faster, see https://github.com/facebookresearch/hydra/issues/1324.
     params:
-      ++n_samples: 100000
+      ++n_samples: 100, 500, 1000, 2000, 5000, 10000

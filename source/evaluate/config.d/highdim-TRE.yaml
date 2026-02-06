@@ -8,7 +8,7 @@ to_be_seeded:
 default_grid:
   mutual_information: 0.5, 1.0
   nonzero_mutual_information: 0.5, 1.0
-  dimensionality: 80, 160 #20, 40, 80, 160
+  dimensionality: 20, 40, 80, 160
 
 processed:
   mutual_information:
