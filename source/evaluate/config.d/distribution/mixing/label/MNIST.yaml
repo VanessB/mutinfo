@@ -12,6 +12,8 @@ _subsamplers:
     _target_: torchvision.datasets.MNIST # List inside list.
     root: "./.cache"
     download: True
+    transform:
+      _target_: torchvision.transforms.ToTensor
 
 distribution:
   _target_: mutinfo.distributions.mixing.label.mixed_by_label

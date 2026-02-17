@@ -8,6 +8,8 @@ from scipy.stats._distn_infrastructure import rv_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multi_rv_frozen
 from typing import Any
 
+from ..tools import BaseMutualInformationTest
+
 
 class subsampler(multi_rv_frozen):
     """
@@ -81,18 +83,38 @@ def labeled_dataset_to_subsamplers(
         return subsampler(data, numpy.arange(0, len(data)))
 
 # TODO: does it belong here?
-def torchvision_default_transform(x: numpy.ndarray, to_CHW: bool=False) -> numpy.ndarray:   
-    x = x / 255
-    if len(x.shape) < 4:
-        x = x[:,None,...]
-    
-    if to_CHW:
-        x = x.transpose((0, 3, 1, 2))
+def torchvision_default_transform(
+    dataset,
+    dataloader_kwargs: dict={
+        "batch_size": 512,
+        "shuffle": False,
+    },
+    to_CHW: bool=False
+) -> numpy.ndarray:
+    import torch
 
-    return x
+    dataloader = torch.utils.data.DataLoader(dataset, **dataloader_kwargs)
+    
+    # Extract embeddings
+    data = []
+    targets = []
+    with torch.no_grad():
+        for x, y in dataloader:
+            data.append(x.cpu().numpy())
+            targets.append(y.cpu().numpy())
+    
+    return numpy.concatenate(data, axis=0), numpy.concatenate(targets, axis=0)
 
 # TODO: move?
-def embedding_with_resnet18_backbone(x: numpy.ndarray, checkpoint_path: str=None) -> numpy.ndarray:
+def embedding_with_resnet18_backbone(
+    dataset,
+    checkpoint_path: str=None,
+    dataloader_kwargs: dict={
+        "batch_size": 512,
+        "shuffle": False,
+    },
+    device: str="cpu",
+) -> numpy.ndarray:
     """
     Extract embeddings from CIFAR-10 images using a trained ResNet18 backbone.
     
@@ -109,61 +131,48 @@ def embedding_with_resnet18_backbone(x: numpy.ndarray, checkpoint_path: str=None
     embeddings : numpy.ndarray
         Feature embeddings with shape (N, 512) for ResNet18.
     """
+    
     import torch
     import torch.nn as nn
     import torchvision
     from pathlib import Path
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    # Load checkpoint
-    if checkpoint_path is None:
-        checkpoint_path = Path(__file__).parent.parent.parent.parent.parent / 'resnet18_checkpoints' / 'best_model.pt'
-    
+    device = torch.device(device)
     checkpoint = torch.load(checkpoint_path, map_location=device)
     
-    # Adapt backbone for CIFAR-10 (from supervised_learning_cifar10.py)
+    # Adapt backbone for CIFAR-10 (from supervised_learning_cifar10.py).
     def adapt_backbone_to_CIFAR(backbone):
         backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=(3, 3), stride=1, padding=(1, 1))
         backbone.maxpool = torch.nn.Identity()
         return backbone
     
-    # Create model
+    # Create model.
     backbone = torchvision.models.resnet18(num_classes=128)
     backbone = adapt_backbone_to_CIFAR(backbone)
-    backbone.fc = nn.Linear(512, 10)  # Match the saved model structure
+    backbone.fc = nn.Linear(512, 10)  # Match the saved model structure.
     
-    # Load weights - strip "backbone." prefix from checkpoint keys
+    # Load weights - strip "backbone." prefix from checkpoint keys.
     state_dict = checkpoint['model_state_dict']
     state_dict = {k.replace('backbone.', ''): v for k, v in state_dict.items() if k.startswith('backbone.')}
     backbone.load_state_dict(state_dict)
     
-    # Remove final classification layer to extract embeddings
+    # Remove final classification layer to extract embeddings.
     backbone.fc = nn.Identity()
     backbone = backbone.to(device)
     backbone.eval()
-    
-    # Prepare input
-    if x.max() > 1.0:
-        x = x / 255.0
-    
-    # Convert to CHW format if needed
-    if x.shape[-1] == 3:  # HWC format
-        x = x.transpose((0, 3, 1, 2))
-    
-    # Normalize using CIFAR-10 statistics
-    mean = numpy.array([0.4914, 0.4822, 0.4465]).reshape(1, 3, 1, 1)
-    std = numpy.array([0.2023, 0.1994, 0.2010]).reshape(1, 3, 1, 1)
-    x = (x - mean) / std
-    
-    # Convert to tensor
-    x_tensor = torch.from_numpy(x).float().to(device)
+
+    # Use dataloader for batched processing.
+    dataloader = torch.utils.data.DataLoader(dataset, **dataloader_kwargs)
     
     # Extract embeddings
+    embeddings = []
+    targets = []
     with torch.no_grad():
-        embeddings = backbone(x_tensor)
+        for x, y in dataloader:
+            embeddings.append(backbone(x.to(device)).cpu().numpy())
+            targets.append(y.cpu().numpy())
     
-    return embeddings.cpu().numpy()
+    return numpy.concatenate(embeddings, axis=0), numpy.concatenate(targets, axis=0) #numpy.asarray(dataset.targets)
 
 # TODO: does it belong here?
 def torchvision_labeled_dataset_to_subsamplers(
@@ -185,15 +194,13 @@ def torchvision_labeled_dataset_to_subsamplers(
     x : numpy.ndarray
         Random non-repetitive sampling.
     """
+
+    data, labels = transform(dataset)
     
-    return labeled_dataset_to_subsamplers(
-        transform(numpy.asarray(dataset.data)),
-        numpy.asarray(dataset.targets),
-        split_by_labels
-    )
+    return labeled_dataset_to_subsamplers(data, labels, split_by_labels)
 
 
-class mixed_by_label(multi_rv_frozen):
+class mixed_by_label(multi_rv_frozen, BaseMutualInformationTest):
     def __init__(
         self,
         marginal_distributions: dict[Any, list[multi_rv_frozen | rv_frozen]],

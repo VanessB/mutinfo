@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.02.1
+
+- Added MINDE and FMMI estimators.
+
 ## 2025.02.1
 - Weighted Kozachenko-Leonenko k-NN based differential entropy and mutual information estimator added.
 

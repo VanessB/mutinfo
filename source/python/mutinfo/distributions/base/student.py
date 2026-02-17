@@ -6,6 +6,7 @@ from scipy.stats._multivariate import multi_rv_frozen
 
 from .normal import CovViaTridiagonal, correlated_multivariate_normal
 
+from ..tools import BaseMutualInformationTest
 from ...utils.checks import _check_dimension_value
 
 
@@ -60,7 +61,7 @@ def mutual_information_correction_term(
            entropy_correction_term(degrees_of_freedom + Y_dim)
 
 
-class correlated_multivariate_student(multi_rv_frozen):
+class correlated_multivariate_student(multi_rv_frozen, BaseMutualInformationTest):
     def __init__(self, cov: CovViaTridiagonal, df: int, **kwargs) -> None:
         """
         Create a frozen multivariate Student's distribution with known mutual information.
