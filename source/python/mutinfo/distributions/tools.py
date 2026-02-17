@@ -1,6 +1,7 @@
 import numpy
 from scipy.stats._multivariate import multi_rv_frozen
 
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 # Useful for `mapped_multi_rv_frozen`.
@@ -18,7 +19,25 @@ def cartesian_product_of_functions(*functions):
     return __prod_fn
 
 
-class stacked_multi_rv_frozen(multi_rv_frozen):
+class BaseTest(ABC):
+    @property
+    @abstractmethod
+    def target(self):
+        raise NotImplementedError()
+
+
+class BaseMutualInformationTest(BaseTest):
+    @property
+    @abstractmethod
+    def mutual_information(self) -> float:
+        raise NotImplementedError()
+
+    @property
+    def target(self) -> float:
+        return float(self.mutual_information)
+
+
+class stacked_multi_rv_frozen(multi_rv_frozen, BaseMutualInformationTest):
     def __init__(
         self, base_rv: multi_rv_frozen, dimensionality: int,
         *args, **kwargs
@@ -35,7 +54,7 @@ class stacked_multi_rv_frozen(multi_rv_frozen):
             Desired dimensionality.
         """
 
-        super().__init__(*args, **kwargs)
+        multi_rv_frozen.__init__(self, *args, **kwargs)
 
         self._dist = base_rv
         self.dimensionality = dimensionality
@@ -82,7 +101,7 @@ class stacked_multi_rv_frozen(multi_rv_frozen):
         return numpy.sum(self.componentwise_mutual_information)
         
 
-class mapped_multi_rv_frozen(multi_rv_frozen):
+class mapped_multi_rv_frozen(multi_rv_frozen, BaseTest):
     def __init__(
         self,
         base_rv: multi_rv_frozen,
@@ -104,7 +123,7 @@ class mapped_multi_rv_frozen(multi_rv_frozen):
             Inverse of the transformation mapping.
         """
 
-        super().__init__(*args, **kwargs)
+        multi_rv_frozen.__init__(self, *args, **kwargs)
 
         self._dist = base_rv
         self.mapping = mapping
@@ -131,14 +150,12 @@ class mapped_multi_rv_frozen(multi_rv_frozen):
         return self.mapping(*self._dist.rvs(*args, **kwargs))
 
     @property
-    def mutual_information(self) -> float:
-        """
-        Mutual information (under the ussumption that `self.mapping`
-        is injective).
+    def target(self):
+        return self._dist.target
 
-        Returns
-        -------
-        mutual_information : float
-            Mutual information of the underlying distribution.
+    def __getattr__(self, name):
         """
-        return self._dist.mutual_information
+        Forward attribute getter.
+        """
+        
+        return getattr(self._dist, name)

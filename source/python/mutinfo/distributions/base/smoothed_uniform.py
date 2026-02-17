@@ -4,6 +4,7 @@ from scipy.special import lambertw
 from scipy.stats import uniform
 from scipy.stats._multivariate import multi_rv_frozen
 
+from ..tools import BaseMutualInformationTest
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
@@ -82,7 +83,7 @@ def mutual_information_to_inverse_smoothing_epsilon(mutual_information: float | 
     return inverse_smoothing_epsilon.item() if is_float else inverse_smoothing_epsilon 
 
 
-class smoothed_uniform(multi_rv_frozen):
+class smoothed_uniform(multi_rv_frozen, BaseMutualInformationTest):
     def __init__(
         self,
         inverse_smoothing_epsilon: numpy.ndarray,
@@ -98,7 +99,7 @@ class smoothed_uniform(multi_rv_frozen):
             1D array of inverse smoothing epsilon parameters of the distribution.
         """
 
-        super().__init__(*args, **kwargs)
+        multi_rv_frozen.__init__(self, *args, **kwargs)
 
         if len(inverse_smoothing_epsilon.shape) != 1:
             raise ValueError("`inverse_smoothing_epsilon` must be a 1D array")

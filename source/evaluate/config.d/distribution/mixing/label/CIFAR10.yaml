@@ -1,7 +1,7 @@
 # @package _global_
 
 name:
-  distribution: labels/CIFAR
+  distribution: labels/CIFAR10
 
 default_grid:
   mutual_information: 0.0, 0.5, 1.0, 1.5, 2.0, 2.3 #range(0.0, 2.4, 0.2)
@@ -13,9 +13,16 @@ _subsamplers:
     _partial_: true
     to_CHW: true
   dataset:
-    _target_: torchvision.datasets.CIFAR10 # List inside list.
+    _target_: torchvision.datasets.CIFAR10
     root: "./.cache"
     download: True
+    transform:
+      _target_: torchvision.transforms.Compose
+      transforms:
+        - _target_: torchvision.transforms.ToTensor
+        - _target_: torchvision.transforms.Normalize
+          mean: [0.4914, 0.4822, 0.4465]
+          std:  [0.2023, 0.1994, 0.2010]
 
 distribution:
   _target_: mutinfo.distributions.mixing.label.mixed_by_label

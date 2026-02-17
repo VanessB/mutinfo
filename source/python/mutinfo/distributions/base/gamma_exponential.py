@@ -6,6 +6,7 @@ from scipy.special import digamma
 from scipy.stats import gamma, expon, loggamma
 from scipy.stats._multivariate import multi_rv_frozen
 
+from ..tools import BaseMutualInformationTest
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
@@ -142,7 +143,7 @@ def mutual_information_to_inverse_shape_parameter(mutual_information: float | nu
     return inverse_shape_parameter
 
 
-class log_gamma_exponential(multi_rv_frozen):
+class log_gamma_exponential(multi_rv_frozen, BaseMutualInformationTest):
     """
     Frozen log-gamma-exponential distribution with known mutual information.
     """
@@ -162,7 +163,7 @@ class log_gamma_exponential(multi_rv_frozen):
             1D array of inverse shape parameters of the distribution.
         """
 
-        super().__init__(*args, **kwargs)
+        multi_rv_frozen.__init__(self, *args, **kwargs)
 
         if len(inverse_shape_parameter.shape) != 1:
             raise ValueError("`inverse_shape_parameter` must be a 1D array")

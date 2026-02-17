@@ -10,6 +10,7 @@ __pycache__/
 
 # Data and builds
 *cache
+checkpoints
 build
 data
 models

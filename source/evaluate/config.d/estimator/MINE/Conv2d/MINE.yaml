@@ -1,7 +1,7 @@
 # @package _global_
 
 name:
-  estimator: Conv2d-MINE
+  estimator: Conv2d-MINE-DV
 
 estimator:
   _target_: mutinfo.estimators.parametric.mine.MINE

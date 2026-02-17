@@ -3,7 +3,12 @@ import yaml
 import pandas
 import re
 
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
+
+def MAE(x, first, second):
+    return (x[first] - x[second]).abs()
 
 distribution_names = {
     "CorrelatedNormal":    "Correlated Normal",
@@ -341,18 +346,33 @@ def postprocess_table(table: str) -> str:
 
 
 if __name__ == "__main__":
-    #data = bebeziana.read(data_path, ["setup.yaml", "results.yaml"])
+    ignore_parts = [".ipynb_checkpoints"]
 
-    for table_name, table_config in tables.items():
+    configs_path = Path("./config.d/tables")
+    for config_path in configs_path.rglob("*.yaml"):
+        if not config_path.is_file():
+            continue
+
+        ignore = False
+        for part in ignore_parts:
+            ignore = ignore or part in config_path.parts
+        if ignore:
+            continue
+
+        table_config = instantiate(OmegaConf.to_container(OmegaConf.load(config_path), resolve=True), _convert_="object")
+        table_name   = table_config["name"]
+        #table_name   = config_path.stem
+
         print(table_name)
         
         final_data = []
         for estimator_name, estimator_config in table_config["estimators"].items():
-            data_path = table_config["data_paths"][estimator_name] / "data.csv"
+            directory_path = Path(table_config["estimators"][estimator_name]["path"])
+            data_path = directory_path / "data.csv"
             if data_path.exists():
                 data = pandas.read_csv(data_path)
             else:
-                data = bebeziana.read(table_config["data_paths"][estimator_name], ["setup.yaml", "results.yaml"])
+                data = bebeziana.read(directory_path, ["setup.yaml", "results.yaml"])
                 data.to_csv(data_path)
 
             for column, value in table_config["fixed_columns"].items():

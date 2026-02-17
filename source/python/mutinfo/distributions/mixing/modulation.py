@@ -6,8 +6,10 @@ from scipy.stats._distn_infrastructure import rv_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multi_rv_frozen
 from typing import Any
 
+from ..tools import BaseMutualInformationTest
 
-class modulated(multi_rv_frozen):
+
+class modulated(multi_rv_frozen, BaseMutualInformationTest):
     def __init__(
         self,
         marginal_distributions: list[multi_rv_frozen | rv_frozen],

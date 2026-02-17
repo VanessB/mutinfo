@@ -3,6 +3,7 @@ import numpy
 from scipy.stats import Covariance, ortho_group
 from scipy.stats._multivariate import multivariate_normal_frozen
 
+from ..tools import BaseMutualInformationTest
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
@@ -457,7 +458,7 @@ class CovViaTridiagonal(Covariance):
             raise ValueError("The matrix must be orthogonal")
 
 
-class correlated_multivariate_normal(multivariate_normal_frozen):
+class correlated_multivariate_normal(multivariate_normal_frozen, BaseMutualInformationTest):
     """
     Frozen multivariate normal distribution with known mutual information.
     """
@@ -473,7 +474,7 @@ class correlated_multivariate_normal(multivariate_normal_frozen):
             distribution.
         """
 
-        super().__init__(cov=cov, **kwargs)
+        multivariate_normal_frozen.__init__(self, cov=cov, **kwargs)
 
     def rvs(self, *args, **kwargs) -> tuple[numpy.ndarray, numpy.ndarray]:
         """

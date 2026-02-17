@@ -34,23 +34,26 @@ def run_test(config : DictConfig) -> None:
         setup["n_samples"] = int(config["n_samples"])
         setup["n_runs"]    = int(config["n_runs"])
 
+        # Include optional keys in a separate setup config.
         optional_keys = ["raw", "processed", "name", "key"]
         for key in optional_keys:
             if key in config.keys():
                 setup[key] = OmegaConf.to_container(config[key], resolve=True)
 
+        # Instantiate random variable for pre-experiment probing.
+        random_variable = instantiate(config["distribution"], _convert_="object")
+        #setup["target"] = random_variable.target
+
+        # Probe estimator to determine its number of parameters.
         setup["n_parameters"] = 0
         if "parameters_counter" in config:
-            estimator       = instantiate(config["estimator"], _convert_="object")
-            random_variable = instantiate(config["distribution"], _convert_="object")
-            x, y            = random_variable.rvs(config["n_samples"])
+            estimator = instantiate(config["estimator"], _convert_="object")
+            x, y      = random_variable.rvs(config["n_samples"])
             
             parameters_counter    = instantiate(config["parameters_counter"], _convert_="object")
             setup["n_parameters"] = parameters_counter(estimator, x, y)
 
-            del estimator
-            del random_variable
-            del parameters_counter
+            del x, y, estimator, parameters_counter
 
         path = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
 
@@ -61,8 +64,10 @@ def run_test(config : DictConfig) -> None:
             return
 
         # Results for post-processing.
-        results = {}
-        results["mutual_information"] = {"values": []}
+        results = {"target": random_variable.target}
+        results["estimate"] = {"values": []}
+
+        del random_variable
             
         for index in trange(config["n_runs"]):
             bebeziana.seed_everything(config["seed"] + index, to_be_seeded=config["to_be_seeded"])
@@ -71,17 +76,9 @@ def run_test(config : DictConfig) -> None:
             random_variable = instantiate(config["distribution"], _convert_="object")
 
             x, y = random_variable.rvs(config["n_samples"])
-            results["mutual_information"]["values"].append(estimator(x, y))
+            results["estimate"]["values"].append(estimator(x, y))
 
-        # If the estimator is parametrized, get the total number of parameters.
-        # TODO: make pretty.
-        #_est = estimator
-        #if isinstance(_est, TransformedMutualInformationEstimator):
-        #    _est = _est.estimator
-        #if isinstance(_est, ParametricMutualInformationEstimator):
-        #    setup["n_parameters"] = _est.count_parameters(x, y)
-
-        for statistic in ["mutual_information"]:
+        for statistic in ["estimate"]:
             # All values.
             results[statistic]["values"] = numpy.array(results[statistic]["values"])
     
@@ -93,7 +90,7 @@ def run_test(config : DictConfig) -> None:
             results[statistic]["median"] = float(numpy.median(results[statistic]["values"]))
             results[statistic]["lower_quartile"] = float(numpy.quantile(results[statistic]["values"], 0.25))
             results[statistic]["upper_quartile"] = float(numpy.quantile(results[statistic]["values"], 0.75))
-            results[statistic]["half_interquartile_range"] = results[statistic]["upper_quartile"] - results[statistic]["lower_quartile"]
+            results[statistic]["interquartile_range"] = results[statistic]["upper_quartile"] - results[statistic]["lower_quartile"]
 
         with open(path / "setup.yaml", 'w') as file:
             yaml.dump(setup, file, default_flow_style=False)

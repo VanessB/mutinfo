@@ -9,9 +9,9 @@ from scipy.stats._multivariate import multi_rv_frozen
 from . import discrete
 from . import gamma_exponential
 from . import normal
+from . import quantized
 from . import smoothed_uniform
 from . import student
-from . import mixture
 from .. import tools
 
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
@@ -320,7 +320,7 @@ def UniformlyQuantized(
     base_rv: rv_frozen,
     normalize: bool=False,
     randomize_interactions: bool=False
-) -> discrete.quantized_rv:
+) -> quantized.quantized:
     """
     Create a two-dimensional mixed-type distribution
     given the value of the mutual information between the components.
@@ -343,8 +343,8 @@ def UniformlyQuantized(
 
     Returns
     -------
-    random_variable : quantized.quantized_rv
-        An instance of quantized.quantized_rv
+    random_variable : quantized.quantized
+        An instance of quantized.quantized
         with the provided value of the mutual information.
     """
 
@@ -354,7 +354,7 @@ def UniformlyQuantized(
     probabilities = discrete.entropy_to_probabilities(mutual_information / dimensionality)
     quantiles = numpy.cumsum(probabilities)[:-1]
 
-    return tools.stacked_multi_rv_frozen(discrete.quantized_rv(base_rv, quantiles, normalize), dimensionality)
+    return tools.stacked_multi_rv_frozen(quantized.quantized(base_rv, quantiles, normalize), dimensionality)
 
 
 def SmoothedUniform(
@@ -388,43 +388,6 @@ def SmoothedUniform(
     inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
     
     return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon)
-
-def MixtureUniform(
-    mutual_information: float,
-    dimensionality: int,
-    normalize: bool,
-    randomize_interactions: bool=False
-) -> mixture.mixed_with_randomized_parameters:
-    """
-    Create a multivariate mixture of uniform distributions
-    with defined mutual information between subvectors.
-
-    Parameters
-    ----------
-    mutual_information : float
-        Mutual information (lies within [0.0; +inf)).
-    dimensionality : int
-        Dimensionality of the vectors.
-    normalize : bool
-        Normalize the distribution.
-    randomize_interactions : bool, optional
-        Randomize component-wise mutual information
-        (the total value of mutual information stays fixed).
-        If not randomized, interactions are assigned uniformly.
-
-    Returns
-    -------
-    random_variable : mixture.mixture_uniform
-        An instance of mixture.mixture_uniform
-        with the provided value of the mutual information.
-    """
-
-    if randomize_interactions:
-        raise NotImplementedError("Interaction randomization is not implemented for `MixtureUniform` yet.")
-
-    componentwise_mutual_information = mutual_information / dimensionality
-    
-    return tools.stacked_multi_rv_frozen(mixture.mixed_with_randomized_parameters(componentwise_mutual_information, normalize), dimensionality)
 
 
 def NoiselessChannel(
@@ -494,3 +457,42 @@ def SymmetricNoisyChannel(
     permutation = numpy.random.permutation(alphabet_size) if permute else None
     
     return discrete.symmetric_noisy_channel(values=(alphabet, probabilities), reroll_probability=reroll_probability, permutation=permutation)
+
+
+def SmoothedQuantized(
+    alphabet_size: int,
+    smoothing_epsilon: int,
+    dimensionality: int,
+    normalize: bool=False,
+    randomize_interactions: bool=False
+) -> quantized.smoothed_quantized:
+    """
+    Create a multivariate mixture of uniform distributions
+    with defined mutual information between subvectors.
+
+    Parameters
+    ----------
+    alphabet_size : int >= 2
+        Discrete variable support size.
+    smoothing_epsilon : int >= 1
+        Additive noise support length.
+    dimensionality : int
+        Dimensionality of the vectors.
+    normalize : bool
+        Normalize the distribution.
+    randomize_interactions : bool, optional
+        Randomize component-wise mutual information
+        (the total value of mutual information stays fixed).
+        If not randomized, interactions are assigned uniformly.
+
+    Returns
+    -------
+    random_variable : mixture.mixture_uniform
+        An instance of mixture.mixture_uniform
+        with the provided value of the mutual information.
+    """
+
+    if randomize_interactions:
+        raise NotImplementedError("Interaction randomization is not implemented for `SmoothedQuantized` yet.")
+    
+    return tools.stacked_multi_rv_frozen(quantized.smoothed_quantized(alphabet_size, smoothing_epsilon, normalize), dimensionality)
