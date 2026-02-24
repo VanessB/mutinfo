@@ -5,7 +5,7 @@ estimator:
   name: MINDE-Conv2d
   variant: c
   backbone_factory:
-    _target_: mutinfo.estimators.parametric.misc.model.GenericConv2DDiffuser
+    _target_: mutinfo.estimators.parametric.model.GenericConv2DDiffuser
     _partial_: true
     hidden_dim: 64
     n_filters: 8
@@ -39,7 +39,7 @@ estimator:
         save_top_k: -1  # Save all checkpoints
         save_last: true
   sde:
-    _target_: mutinfo.estimators.parametric.misc.sde_lib.VP_SDE
+    _target_: mutinfo.estimators.parametric.sde_lib.VP_SDE
     beta_min: 0.1
     beta_max: 20.0
     T: 1.0

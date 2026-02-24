@@ -15,6 +15,6 @@ hydra:
   sweeper:
     params:
       ++distribution.alphabet_size: 2, 4, 8, 16, 32, 64, 128, 256, 512
-      ++distribution.smoothing_epsilon: 1, 2, 3, 4, 5
+      ++distribution.smoothing_epsilon: 2, 3 #, 4, 5
       ++raw.mutual_information: 0 # TODO: proper key removal?
       ++raw.dimensionality: ${default_grid.dimensionality}

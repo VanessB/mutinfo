@@ -1,0 +1,67 @@
+# Training configuration for Make Moons dataset
+
+defaults:
+  - train
+  - override /model: flow_mlp_simple
+  - override /datamodule: moons
+  - _self_
+
+# Set prior dimension to 2D for moons dataset
+prior_dim: 2
+
+# No image shape for 2D data
+image_shape: null
+
+# Sample logging settings for 2D data
+log_samples: true
+log_every_n_epochs: 5  # Log more frequently for fast 2D training
+n_samples_to_log: 64   # More samples for 2D scatter plot
+
+# Note: ODE trajectory is automatically logged for 2D data
+# showing the transformation from prior to data at different timesteps
+
+# FlowMLP works well for 2D data
+model:
+  dim: 2
+  h: 64
+
+# Higher learning rate for small model
+optimizer:
+  lr: 1.0e-2
+
+# Enable EMA for better quality
+use_ema: true
+ema_decay: 0.999
+
+# Override trainer configuration for 2D datasets
+trainer_full:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 100
+  accelerator: auto
+  devices: 1
+  precision: 32
+  gradient_clip_val: 1.0
+  log_every_n_steps: 50
+  check_val_every_n_epoch: 1
+  callbacks:
+    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+      monitor: val_loss
+      mode: min
+      save_top_k: 3
+      save_last: true
+      filename: 'flow-moons-{epoch:02d}-{val_loss:.4f}'
+      dirpath: checkpoints
+      verbose: true
+    - _target_: pytorch_lightning.callbacks.EarlyStopping
+      monitor: val_loss
+      mode: min
+      patience: 10
+      verbose: true
+    - _target_: pytorch_lightning.callbacks.LearningRateMonitor
+      logging_interval: step
+  logger:
+    _target_: pytorch_lightning.loggers.WandbLogger
+    project: tmlr
+    name: flow_moons
+    save_dir: logs
+    log_model: false

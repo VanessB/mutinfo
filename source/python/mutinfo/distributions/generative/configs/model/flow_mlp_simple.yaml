@@ -1,0 +1,6 @@
+# FlowMLP model configuration
+# Lightweight MLP with ELU activations for flow matching
+
+_target_: mutinfo.distributions.generative.flow_MLP.FlowMLP
+dim: 2  # Input/output dimension
+h: 64   # Hidden dimension

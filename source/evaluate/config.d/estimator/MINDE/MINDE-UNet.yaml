@@ -6,7 +6,7 @@ estimator:
   variant: c
   ckpt_path: null # Path to checkpoint to resume from.
   backbone_factory:
-    _target_: mutinfo.estimators.parametric.model.UNet
+    _target_: mutinfo.estimators.parametric.misc.model.UNet
     _partial_: true
     hidden_dim: 32
     layers_per_block: 2
@@ -40,7 +40,7 @@ estimator:
         save_top_k: -1  # Save all checkpoints
         save_last: true
   sde:
-    _target_: mutinfo.estimators.parametric.sde_lib.VP_SDE
+    _target_: mutinfo.estimators.parametric.misc.sde_lib.VP_SDE
     beta_min: 0.1
     beta_max: 20.0
     T: 1.0

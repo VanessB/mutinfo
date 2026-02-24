@@ -1,11 +1,11 @@
 import pytorch_lightning as pl
 from omegaconf import DictConfig
-from . import minde_utils
+from .misc import minde_utils
 from functools import partial
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from . import sde_lib
-from . import ema
+from .misc import sde_lib
+from .misc import ema
 import time
 import psutil
 import hydra

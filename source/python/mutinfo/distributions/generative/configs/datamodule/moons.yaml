@@ -1,0 +1,21 @@
+# Make Moons DataModule configuration
+# Uses sklearn's make_moons for 2D crescent-shaped data
+
+_target_: mutinfo.distributions.generative.datamodule.CustomFlowDataModule
+n_train_samples: 50000
+n_val_samples: 10000
+n_test_samples: 10000
+batch_size: 256
+num_workers: 0
+
+# Data generator using sklearn make_moons
+data_generator:
+  _target_: sklearn.datasets.make_moons
+  _partial_: true
+  noise: 0.05
+  random_state: null
+
+# Prior generator using numpy random normal
+prior_generator:
+  _target_: numpy.random.randn
+  _partial_: true
