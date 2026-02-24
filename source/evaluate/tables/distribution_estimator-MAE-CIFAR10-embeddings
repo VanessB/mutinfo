@@ -1,0 +1,9 @@
+\begin{tabular}{llcccccc}
+\toprule
+ &  & \multicolumn{6}{c}{Ground-truth Mutual Information} \\
+ & distribution.labels_distribution.mutual_information & 0.000000 & 0.500000 & 1.000000 & 1.500000 & 2.000000 & 2.300000 \\
+Distribution & Estimator &  &  &  &  &  &  \\
+\midrule
+mutinfo.distributions.mixing.label.mixed_by_label & InfoNCE & $ 0.00 $ & $ 0.03 $ & $ 0.03 $ & $ 0.03 $ & $ 0.02 $ & $ 0.03 $ \\
+\bottomrule
+\end{tabular}

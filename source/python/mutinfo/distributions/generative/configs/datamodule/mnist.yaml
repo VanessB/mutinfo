@@ -1,0 +1,9 @@
+# MNIST DataModule configuration
+
+_target_: mutinfo.distributions.generative.datamodule.MNISTFlowDataModule
+data_dir: ./data
+batch_size: 256
+num_workers: 4
+flatten: true
+normalize: true
+prior_type: normal  # 'normal' or 'uniform'

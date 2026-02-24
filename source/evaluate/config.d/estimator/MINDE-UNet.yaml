@@ -4,11 +4,12 @@ estimator:
   _target_: mutinfo.estimators.parametric.minde.GenerativeMIEstimator
   name: MINDE-Conv2d
   variant: c
+  ckpt_path: null # Path to checkpoint to resume from.
   backbone_factory:
-    _target_: mutinfo.estimators.parametric.misc.model.GenericConv2DDiffuser
+    _target_: mutinfo.estimators.parametric.model.UNet
     _partial_: true
-    hidden_dim: 64
-    n_filters: 8
+    hidden_dim: 32
+    layers_per_block: 2
   optimizer_factory:
     _target_: torch.optim.Adam
     _partial_: true
@@ -39,7 +40,7 @@ estimator:
         save_top_k: -1  # Save all checkpoints
         save_last: true
   sde:
-    _target_: mutinfo.estimators.parametric.misc.sde_lib.VP_SDE
+    _target_: mutinfo.estimators.parametric.sde_lib.VP_SDE
     beta_min: 0.1
     beta_max: 20.0
     T: 1.0
@@ -51,6 +52,9 @@ estimator:
   estimate_batch_size: 512
   estimate_fraction: 0.5 # `null` for no splitting.
   sampling_eps: 0.001
+
+key:
+  estimator: MINDE-UNet/type=${estimator.variant}/hidden=${estimator.backbone_factory.hidden_dim}/layers_per_block=${estimator.backbone_factory.layers_per_block}
 
 parameters_counter:
   _target_: builtins.eval

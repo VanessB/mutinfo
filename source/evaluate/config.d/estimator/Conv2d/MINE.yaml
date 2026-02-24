@@ -1,0 +1,41 @@
+# @package _global_
+
+name:
+  estimator: Conv2d-MINE
+
+estimator:
+  _target_: mutinfo.estimators.parametric.mine.MINE
+  backbone_factory:
+    _target_: mutinfo.estimators.parametric.mine.GenericConv2dClassifier
+    _partial_: true
+    hidden_dim: 16
+    n_filters: 16
+  optimizer_factory:
+    _target_: torch.optim.Adam
+    _partial_: true
+    lr: 1.0e-3
+  loss_factory:
+    _target_: torchfd.loss.DonskerVaradhanLoss
+    _partial_: true
+    biased: false
+    ema_multiplier: 1.0e-2
+  n_train_steps: 10000
+  train_batch_size: 512
+  estimate_batch_size: 512
+  estimate_size: 0.5 # `null` for no splitting.
+  device: "cuda"
+
+parameters_counter:
+  _target_: builtins.eval
+  _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
+
+key:
+  estimator: ${name.estimator}/hidden=${estimator.backbone_factory.hidden_dim}/filters=${estimator.backbone_factory.n_filters}
+
+hydra:
+  sweeper:
+    params:
+      ++estimator.backbone_factory.n_filters: 8, 16
+      #++estimator.estimator.estimate_size: null, 0.5
+      #++estimator.backbone_factory.hidden_dim: 8, 16, 32
+      #++estimator.backbone_factory.n_filters: 8, 16, 32, 64, 128
