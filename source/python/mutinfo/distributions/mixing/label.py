@@ -108,62 +108,60 @@ def torchvision_default_transform(
 # TODO: move?
 def embedding_with_resnet18_backbone(
     dataset,
-    checkpoint_path: str=None,
-    dataloader_kwargs: dict={
-        "batch_size": 512,
-        "shuffle": False,
-    },
-    device: str="cpu",
+    checkpoint_path: str,
+    backbone_name: str="resnet18",
+    embeddings_dim: int=128,
 ) -> numpy.ndarray:
     """
-    Extract embeddings from CIFAR-10 images using a trained ResNet18 backbone.
-    
+    Extract embeddings from a torchvision dataset using a trained ResNet backbone
+    matching the ResNetClassifier architecture.
+
     Parameters
     ----------
-    x : numpy.ndarray
-        Input images with shape (N, H, W, C) or (N, C, H, W).
-        Values should be in range [0, 1] or [0, 255].
-    checkpoint_path : str, optional
-        Path to the checkpoint file. If None, uses the best model from resnet18_checkpoints/.
-    
+    dataset : torchvision Dataset
+        Dataset whose images will be embedded. The dataset's transform should
+        already apply the appropriate normalization (e.g. CIFAR-10 statistics).
+    checkpoint_path : str
+        Path to the checkpoint file saved by ResNetClassifier.
+    backbone_name : str
+        Torchvision backbone name (default: "resnet18").
+    embeddings_dim : int
+        Embedding dimension used when training the backbone (default: 128).
+
     Returns
     -------
     embeddings : numpy.ndarray
-        Feature embeddings with shape (N, 512) for ResNet18.
+        Feature embeddings with shape (N, embeddings_dim).
+    targets : numpy.ndarray
+        Corresponding labels with shape (N,).
     """
-    
     import torch
-    import torch.nn as nn
     import torchvision
-    from pathlib import Path
-    
-    device = torch.device(device)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     checkpoint = torch.load(checkpoint_path, map_location=device)
-    
-    # Adapt backbone for CIFAR-10 (from supervised_learning_cifar10.py).
-    def adapt_backbone_to_CIFAR(backbone):
-        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=(3, 3), stride=1, padding=(1, 1))
-        backbone.maxpool = torch.nn.Identity()
-        return backbone
-    
-    # Create model.
-    backbone = torchvision.models.resnet18(num_classes=128)
-    backbone = adapt_backbone_to_CIFAR(backbone)
-    backbone.fc = nn.Linear(512, 10)  # Match the saved model structure.
-    
-    # Load weights - strip "backbone." prefix from checkpoint keys.
-    state_dict = checkpoint['model_state_dict']
-    state_dict = {k.replace('backbone.', ''): v for k, v in state_dict.items() if k.startswith('backbone.')}
-    backbone.load_state_dict(state_dict)
-    
-    # Remove final classification layer to extract embeddings.
-    backbone.fc = nn.Identity()
+    state_dict = checkpoint.get('model_state_dict', checkpoint)
+
+    # Build backbone matching ResNetClassifier exactly:
+    # getattr(torchvision.models, backbone_name)(num_classes=embeddings_dim)
+    # + CIFAR adaptation (3x3 conv1, no maxpool)
+    backbone = getattr(torchvision.models, backbone_name)(num_classes=embeddings_dim)
+    backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=(3, 3), stride=1, padding=(1, 1))
+    backbone.maxpool = torch.nn.Identity()
+
+    backbone_sd = {
+        k[len('backbone.'):]: v
+        for k, v in state_dict.items()
+        if k.startswith('backbone.')
+    }
+    backbone.load_state_dict(backbone_sd, strict=True)
+
     backbone = backbone.to(device)
     backbone.eval()
 
-    # Use dataloader for batched processing.
-    dataloader = torch.utils.data.DataLoader(dataset, **dataloader_kwargs)
-    
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=512, shuffle=False)
+
     # Extract embeddings
     embeddings = []
     targets = []

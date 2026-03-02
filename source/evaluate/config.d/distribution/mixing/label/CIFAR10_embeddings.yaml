@@ -11,8 +11,8 @@ _subsamplers:
   transform:
     _target_: mutinfo.distributions.mixing.label.embedding_with_resnet18_backbone
     _partial_: true
-    device: "cuda:0"
-    checkpoint_path: ../python/mutinfo/misc/checkpoints/cifar10_supervised/best_model.pt
+    checkpoint_path: /home/foresti/mutinfo-stable/checkpoints/cifar10_supervised/best_model.pt
+    embeddings_dim: 16
   dataset:
     _target_: torchvision.datasets.CIFAR10 # List inside list.
     root: "./.cache"
