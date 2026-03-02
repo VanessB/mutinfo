@@ -106,10 +106,15 @@ def torchvision_default_transform(
     return numpy.concatenate(data, axis=0), numpy.concatenate(targets, axis=0)
 
 # TODO: move?
-def embedding_with_resnet18_backbone(
+def embedding_with_resnet_backbone(
     dataset,
-    checkpoint_path: str,
     backbone_name: str="resnet18",
+    checkpoint_path: str=None,
+    dataloader_kwargs: dict={
+        "batch_size": 512,
+        "shuffle": False,
+    },
+    device: str="cpu",
     embeddings_dim: int=128,
 ) -> numpy.ndarray:
     """
@@ -137,8 +142,9 @@ def embedding_with_resnet18_backbone(
     """
     import torch
     import torchvision
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    from pathlib import Path
+    
+    device = torch.device(device)
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
     state_dict = checkpoint.get('model_state_dict', checkpoint)
@@ -160,7 +166,7 @@ def embedding_with_resnet18_backbone(
     backbone = backbone.to(device)
     backbone.eval()
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=512, shuffle=False)
+    dataloader = torch.utils.data.DataLoader(dataset, **dataloader_kwargs)
 
     # Extract embeddings
     embeddings = []
