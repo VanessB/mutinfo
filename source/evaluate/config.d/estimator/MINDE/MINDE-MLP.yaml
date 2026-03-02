@@ -1,8 +1,11 @@
 # @package _global_
 
+name:
+  estimator: MINDE-MLP-${estimator.variant}
+
 estimator:
   _target_: mutinfo.estimators.parametric.minde.GenerativeMIEstimator
-  name: MINDE-Conv2d
+  name: MINDE-MLP
   variant: c
   backbone_factory:
     _target_: mutinfo.estimators.parametric.misc.model.GenericMLPDiffuser
@@ -11,7 +14,7 @@ estimator:
   optimizer_factory:
     _target_: torch.optim.Adam
     _partial_: true
-    lr: 1e-2
+    lr: 1e-3
   logger:
     _target_: pytorch_lightning.loggers.WandbLogger
     project: tmlr
@@ -55,8 +58,11 @@ parameters_counter:
   _target_: builtins.eval
   _args_: ["lambda estimator, x, y: sum(parameters.numel() for parameters in estimator.backbone_factory(x.shape, y.shape).parameters())"]
 
+key:
+  estimator: ${name.estimator}
+
 hydra:
   sweeper:
     params:
       #++estimator.estimator.estimate_fraction: null, 0.5
-      ++estimator.backbone_factory.hidden_dim: 16
+      ++estimator.backbone_factory.hidden_dim: 128
