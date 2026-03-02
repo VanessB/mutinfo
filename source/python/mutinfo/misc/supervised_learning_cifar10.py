@@ -72,11 +72,10 @@ class ResNetClassifier(nn.Module):
         backbone = getattr(torchvision.models, backbone_name)(num_classes=embeddings_dim)
         self.backbone = adapt_backbone_to_CIFAR(backbone)
 
-        self.fc = nn.Linear(embeddings_dim, num_classes)
+        self.linear = nn.Linear(embeddings_dim, num_classes)
 
     def forward(self, x):
-        embs = self.backbone(x)
-        return self.fc(embs)
+        return self.linear(self.backbone(x))
 
 
 def train_epoch(model, trainloader, criterion, optimizer, device):
