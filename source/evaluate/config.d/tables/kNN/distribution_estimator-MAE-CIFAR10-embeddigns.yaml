@@ -1,0 +1,25 @@
+name: KSG_MAE_vs_kNN
+
+estimators:
+  KSG:
+    path: "./outputs/lowdim/2025-10-20/KSG"
+    min_columns: ["estimator.k_neighbors"]
+    fixed_columns: {}
+    priority: 0
+
+target:
+  name: "Ground-truth Mutual Information"
+  function:
+    _target_: __main__.MAE
+    _partial_: true
+    first: "distribution.mutual_information"
+    second: "mutual_information.mean"
+
+column_to_chart:
+  name: "estimator.k_neighbors"
+  apply:
+    _target_: builtins.int
+    _partial_: true
+
+rows_to_chart: ["Distribution"]
+fixed_columns: {}
