@@ -7,6 +7,7 @@ from scipy.stats import gamma, expon, loggamma
 from scipy.stats._multivariate import multi_rv_frozen
 
 from ..tools import BaseMutualInformationTest
+from ...utils.special import log_hyperfactorial
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
@@ -87,7 +88,7 @@ def _scalar_mutual_information_to_inverse_shape_parameter(mutual_information: fl
 
 _vectorized_mutual_information_to_inverse_shape_parameter = numpy.vectorize(_scalar_mutual_information_to_inverse_shape_parameter)
 
-def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float | numpy.ndarray) -> float | numpy.ndarray:
+def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float | numpy.typing.ArrayLike) -> float | numpy.ndarray:
     """
     Calculate mutual information between two random variables with a
     gamma-exponential joint distribution defined by the inverse shape parameter.
@@ -106,7 +107,7 @@ def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float
 
     _check_inverse_shape_parameter_value(inverse_shape_parameter)
 
-    is_float = isinstance(inverse_shape_parameter, float)
+    is_scalar = numpy.isscalar(inverse_shape_parameter)
     inverse_shape_parameter = numpy.asarray(inverse_shape_parameter)
 
     mask = inverse_shape_parameter < 2.0 * _EPS
@@ -115,9 +116,9 @@ def inverse_shape_parameter_to_mutual_information(inverse_shape_parameter: float
     mutual_information[~mask] = digamma(1.0 / inverse_shape_parameter[~mask]) + \
                                 inverse_shape_parameter[~mask] + numpy.log(inverse_shape_parameter[~mask])
 
-    return mutual_information.item() if is_float else mutual_information
+    return mutual_information.item() if is_scalar else mutual_information
 
-def mutual_information_to_inverse_shape_parameter(mutual_information: float | numpy.ndarray) -> float | numpy.ndarray:
+def mutual_information_to_inverse_shape_parameter(mutual_information: float | numpy.typing.ArrayLike) -> float | numpy.ndarray:
     """
     Calculate the inverse shape parameter given the mutual information
     between two random variables with a gamma-exponential joint distribution.
@@ -135,7 +136,7 @@ def mutual_information_to_inverse_shape_parameter(mutual_information: float | nu
 
     _check_mutual_information_value(mutual_information)
 
-    if isinstance(mutual_information, float):
+    if numpy.isscalar(mutual_information):
         inverse_shape_parameter = _scalar_mutual_information_to_inverse_shape_parameter(mutual_information)
     else:
         inverse_shape_parameter = _vectorized_mutual_information_to_inverse_shape_parameter(mutual_information)

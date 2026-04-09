@@ -424,5 +424,8 @@ if __name__ == "__main__":
             )
         table = postprocess_table(table)
 
-        with open(Path("./tables") / table_name, 'w') as table_file:
+        output_path = Path("./tables") / table_name
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, 'w') as table_file:
             table_file.write(table)

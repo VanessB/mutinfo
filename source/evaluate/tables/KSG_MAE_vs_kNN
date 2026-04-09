@@ -1,0 +1,14 @@
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{6}{c}{Ground-truth Mutual Information} \\
+estimator.k_neighbors & 1 & 2 & 3 & 5 & 10 & 20 \\
+Distribution &  &  &  &  &  &  \\
+\midrule
+Correlated Normal & $ 1.80 $ & $ 1.99 $ & $ 2.12 $ & $ 2.30 $ & $ 2.56 $ & $ 2.85 $ \\
+Correlated Student & $ 1.95 $ & $ 2.17 $ & $ 2.31 $ & $ 2.51 $ & $ 2.80 $ & $ 3.13 $ \\
+Correlated Unform & $ 1.91 $ & $ 2.10 $ & $ 2.23 $ & $ 2.39 $ & $ 2.64 $ & $ 2.92 $ \\
+Log-Gamma-Exp. & $ 1.09 $ & $ 1.26 $ & $ 1.39 $ & $ 1.57 $ & $ 1.86 $ & $ 2.20 $ \\
+Smoothed Uniform & $ 1.90 $ & $ 2.09 $ & $ 2.22 $ & $ 2.38 $ & $ 2.63 $ & $ 2.91 $ \\
+Uniformly Quantized & $ 2.23 $ & $ 2.59 $ & $ 2.79 $ & $ 3.02 $ & $ 3.33 $ & $ 3.63 $ \\
+\bottomrule
+\end{tabular}
