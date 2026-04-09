@@ -1,0 +1,40 @@
+name: continuous/double-descend #-${fixed_columns.n_samples}
+
+estimators:
+  MINE-DV:
+    path: "./outputs/lowdim/2025-10-20/MINE-DV"
+    min_columns: ["estimator.estimator.backbone_factory.hidden_dim"]
+    fixed_columns:
+      estimator.estimator.estimate_size: 0.5
+    priority: 1
+  MINE-NWJ:
+    path: "./outputs/lowdim/2025-10-20/MINE-NWJ"
+    min_columns: ["estimator.estimator.backbone_factory.hidden_dim"]
+    fixed_columns:
+      estimator.estimator.estimate_size: 0.5
+    priority: 1
+  InfoNCE:
+    path: "./outputs/lowdim/2025-10-20/InfoNCE"
+    min_columns: ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.estimate_batch_size"]
+    fixed_columns:
+      estimator.estimator.estimate_size: 0.5
+    priority: 2
+
+target:
+  name: "Ground-truth Mutual Information"
+  function:
+    _target_: __main__.MAE
+    _partial_: true
+    first: "distribution.mutual_information"
+    second: "mutual_information.mean"
+
+column_to_chart:
+  name: "n_samples"
+  apply:
+    _target_: builtins.int
+    _partial_: true
+
+#rows_to_chart: ["Distribution", "Estimator", "estimator.estimator.backbone_factory.hidden_dim"]
+rows_to_chart: ["Estimator", "estimator.estimator.backbone_factory.hidden_dim"]
+fixed_columns:
+  distribution.dimensionality: 1

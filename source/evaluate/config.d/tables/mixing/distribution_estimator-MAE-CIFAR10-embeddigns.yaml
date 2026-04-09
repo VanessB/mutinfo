@@ -1,0 +1,48 @@
+name: distribution_estimator-MAE-CIFAR10-embeddings
+
+estimators:
+  KSG:
+    path: "./outputs/mixing/2026-03-17/KSG"
+    min_columns: ["estimator.k_neighbors"]
+    fixed_columns: {}
+    priority: 0
+  WKL:
+    path: "./outputs/mixing/2026-03-17/WKL"
+    min_columns: ["estimator.k_neighbors"]
+    fixed_columns: {}
+    priority: 0
+  MINE-DV:
+    path: "./outputs/mixing/2026-03-17/MINE-DV"
+    min_columns: ["estimator.estimator.backbone_factory.hidden_dim"]
+    fixed_columns:
+      estimator.estimator.estimate_size: 0.5
+    priority: 1
+  MINE-NWJ:
+    path: "./outputs/mixing/2026-03-17/MINE-NWJ"
+    min_columns: ["estimator.estimator.backbone_factory.hidden_dim"]
+    fixed_columns:
+      estimator.estimator.estimate_size: 0.5
+    priority: 1
+  InfoNCE:
+    path: "./outputs/mixing/2026-03-17/InfoNCE"
+    min_columns: ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.estimate_batch_size"]
+    fixed_columns:
+      estimator.estimator.estimate_size: 0.5
+    priority: 2
+
+target:
+  name: "Ground-truth Mutual Information"
+  function:
+    _target_: __main__.MAE
+    _partial_: true
+    first: "target"
+    second: "estimate.median"
+
+column_to_chart:
+  name: "target"
+  apply:
+    _target_: builtins.float
+    _partial_: true
+
+rows_to_chart: ["Distribution", "Estimator"]
+fixed_columns: {}

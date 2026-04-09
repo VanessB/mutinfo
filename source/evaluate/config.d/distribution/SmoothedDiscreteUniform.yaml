@@ -1,0 +1,19 @@
+# @package _global_
+
+name:
+  distribution: SmoothedDiscreteUniform
+
+distribution:
+  _target_: mutinfo.distributions.base.SmoothedDiscreteUniform
+  mutual_information: ${processed.mutual_information}
+  dimensionality: ${raw.dimensionality}
+  normalize: true
+
+key:
+  distribution: ${name.distribution}/dim=${distribution.dimensionality}/MI=${round:${raw.mutual_information}}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.mutual_information}
+      ++raw.dimensionality: ${default_grid.dimensionality}
