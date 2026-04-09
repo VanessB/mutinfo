@@ -1,0 +1,13 @@
+\begin{tabular}{llccccccccccc}
+\toprule
+ &  & \multicolumn{11}{c}{Ground-truth Mutual Information} \\
+ & distribution.mutual_information & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\
+Distribution & Estimator &  &  &  &  &  &  &  &  &  &  &  \\
+\midrule
+\multirow[l]{5}{*}{mutinfo.distributions.base.SmoothedDiscreteUniform} & KSG & $ 0.00 $ & $ 0.01 $ & $ 0.02 $ & $ 0.04 $ & $ 0.06 $ & $ 0.10 $ & $ 0.17 $ & $ 0.29 $ & $ 0.54 $ & $ 1.01 $ & $ 1.64 $ \\
+ & WKL & $ 0.00 $ & $ 1.00 $ & $ 2.00 $ & $ 3.00 $ & $ 4.00 $ & $ 5.00 $ & $ 6.00 $ & $ 7.00 $ & $ 8.00 $ & $ 9.00 $ & $ 9.61 $ \\
+ & MINE-DV & $ 0.00 $ & $ 0.04 $ & $ 0.04 $ & $ 0.08 $ & $ 0.14 $ & $ 0.32 $ & $ 0.51 $ & $ 0.97 $ & $ 1.46 $ & $ 2.22 $ & $ 3.05 $ \\
+ & MINE-NWJ & $ 0.00 $ & $ 0.04 $ & $ 0.05 $ & $ 0.10 $ & $ 0.21 $ & $ 0.47 $ & $ 0.89 $ & $ 1.61 $ & $ 2.40 $ & $ 3.35 $ & $ 4.24 $ \\
+ & InfoNCE & $ 0.00 $ & $ 0.04 $ & $ 0.03 $ & $ 0.07 $ & $ 0.10 $ & $ 0.23 $ & $ 0.52 $ & $ 1.12 $ & $ 1.94 $ & $ 2.89 $ & $ 3.88 $ \\
+\bottomrule
+\end{tabular}

@@ -13,6 +13,7 @@ _subsamplers:
     _partial_: true
     checkpoint_path: ../python/mutinfo/misc/checkpoints/cifar10_supervised/best_model.pt
     embeddings_dim: 16
+    device: "cuda"
   dataset:
     _target_: torchvision.datasets.CIFAR10 # List inside list.
     root: "./.cache"

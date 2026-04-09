@@ -385,9 +385,54 @@ def SmoothedUniform(
     """
 
     componentwise_mutual_information = _distribute_mutual_information(mutual_information, dimensionality, not randomize_interactions)
-    inverse_smoothing_epsilon = smoothed_uniform.mutual_information_to_inverse_smoothing_epsilon(componentwise_mutual_information)
+    inverse_noise_scale = smoothed_uniform.mutual_information_to_inverse_noise_scale(componentwise_mutual_information)
     
-    return smoothed_uniform.smoothed_uniform(inverse_smoothing_epsilon)
+    return smoothed_uniform.smoothed_uniform(inverse_noise_scale)
+
+
+def SmoothedDiscreteUniform(
+    mutual_information: float,
+    dimensionality: int,
+    normalize: bool=False,
+    randomize_interactions: bool=False
+) -> smoothed_uniform.smoothed_discrete_uniform:
+    """
+    Create a multivariate mixture of uniform distributions
+    with defined mutual information between subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimensionality : int
+        Dimensionality of the vectors.
+    normalize : bool
+        Normalize the distribution.
+    randomize_interactions : bool, optional
+        Randomize component-wise mutual information
+        (the total value of mutual information stays fixed).
+        If not randomized, interactions are assigned uniformly.
+
+    Returns
+    -------
+    random_variable : mixture.mixture_uniform
+        An instance of mixture.mixture_uniform
+        with the provided value of the mutual information.
+    """
+
+    # Minimal allowed alphabet size.
+    #alphabet_size = numpy.full(dimensionality, int(math.ceil(math.exp(mutual_information))), dtype=int)
+    #alphabet_size = max(2, int(math.ceil(mutual_information)))
+    
+    componentwise_mutual_information = _distribute_mutual_information(mutual_information, dimensionality, not randomize_interactions)
+    alphabet_size = numpy.ceil(numpy.exp(componentwise_mutual_information)).astype(int)
+    
+    inverse_noise_scale = smoothed_uniform.mutual_information_and_alphabet_size_to_inverse_noise_scale(
+        componentwise_mutual_information,
+        alphabet_size
+    )
+    
+    return smoothed_uniform.smoothed_discrete_uniform(alphabet_size, inverse_noise_scale, normalize)
 
 
 def NoiselessChannel(
@@ -457,42 +502,3 @@ def SymmetricNoisyChannel(
     permutation = numpy.random.permutation(alphabet_size) if permute else None
     
     return discrete.symmetric_noisy_channel(values=(alphabet, probabilities), reroll_probability=reroll_probability, permutation=permutation)
-
-
-def SmoothedQuantized(
-    alphabet_size: int,
-    smoothing_epsilon: int,
-    dimensionality: int,
-    normalize: bool=False,
-    randomize_interactions: bool=False
-) -> quantized.smoothed_quantized:
-    """
-    Create a multivariate mixture of uniform distributions
-    with defined mutual information between subvectors.
-
-    Parameters
-    ----------
-    alphabet_size : int >= 2
-        Discrete variable support size.
-    smoothing_epsilon : int >= 1
-        Additive noise support length.
-    dimensionality : int
-        Dimensionality of the vectors.
-    normalize : bool
-        Normalize the distribution.
-    randomize_interactions : bool, optional
-        Randomize component-wise mutual information
-        (the total value of mutual information stays fixed).
-        If not randomized, interactions are assigned uniformly.
-
-    Returns
-    -------
-    random_variable : mixture.mixture_uniform
-        An instance of mixture.mixture_uniform
-        with the provided value of the mutual information.
-    """
-
-    if randomize_interactions:
-        raise NotImplementedError("Interaction randomization is not implemented for `SmoothedQuantized` yet.")
-    
-    return tools.stacked_multi_rv_frozen(quantized.smoothed_quantized(alphabet_size, smoothing_epsilon, normalize), dimensionality)
