@@ -1,30 +1,30 @@
-name: mixing/distribution_estimator-MAE-CIFAR10-embeddings
+name: continuous/distribution_estimator-estimate-${pin.n_samples}
 
 sources:
   KSG:
-    path: "./outputs/mixing/2026-03-17/KSG"
+    path: "./outputs/lowdim/2025-10-20/KSG"
     aggregate: ["estimator.k_neighbors"]
     pin: {}
     priority: 0
   WKL:
-    path: "./outputs/mixing/2026-03-17/WKL"
+    path: "./outputs/lowdim/2025-10-20/WKL"
     aggregate: ["estimator.k_neighbors"]
     pin: {}
     priority: 0
   MINE-DV:
-    path: "./outputs/mixing/2026-03-17/MINE-DV"
+    path: "./outputs/lowdim/2025-10-20/MINE-DV"
     aggregate: ["estimator.estimator.backbone_factory.hidden_dim"]
     pin:
       estimator.estimator.estimate_size: 0.5
     priority: 1
   MINE-NWJ:
-    path: "./outputs/mixing/2026-03-17/MINE-NWJ"
+    path: "./outputs/lowdim/2025-10-20/MINE-NWJ"
     aggregate: ["estimator.estimator.backbone_factory.hidden_dim"]
     pin:
       estimator.estimator.estimate_size: 0.5
     priority: 1
   InfoNCE:
-    path: "./outputs/mixing/2026-03-17/InfoNCE"
+    path: "./outputs/lowdim/2025-10-20/InfoNCE"
     aggregate: ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.estimate_batch_size"]
     pin:
       estimator.estimator.estimate_size: 0.5
@@ -35,17 +35,21 @@ targets:
     function:
       _target_: __main__.MAE
       _partial_: true
-      first: "target"
-      second: "estimate.median"
+      first: "distribution.mutual_information"
+      second: "mutual_information.mean"
 
-outputs: ["MAE"]
+outputs: ["MAE", "mutual_information.mean"]
 
 aggregation:
   by: "MAE"
-  output: "MAE"
+  output: "mutual_information.mean"
 
 column_to_chart:
-  name: "target"
+  name: "distribution.mutual_information"
+  apply:
+    _target_: builtins.int
+    _partial_: true
 
 rows_to_chart: ["Distribution", "Source"]
-pin: {}
+pin:
+  n_samples: 10000

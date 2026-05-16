@@ -1,10 +1,9 @@
 \begin{tabular}{llcccccc}
 \toprule
- &  & \multicolumn{6}{c}{Ground-truth Mutual Information} \\
- & target & 0.000000 & 0.500000 & 1.000000 & 1.500000 & 2.000000 & 2.300000 \\
-Distribution & Estimator &  &  &  &  &  &  \\
+ &  & 0.0 & 0.499999999999992 & 1.0000000000001146 & 1.4999999999998095 & 1.9999999999997826 & 2.2999999999999994 \\
+Distribution & Source &  &  &  &  &  &  \\
 \midrule
-\multirow[l]{5}{*}{mutinfo.distributions.mixing.label.mixed_by_label} & KSG & $ 0.00 $ & $ 0.00 $ & $ 0.00 $ & $ 0.00 $ & $ 0.01 $ & $ 0.00 $ \\
+\multirow[l]{5}{*}{labels/CIFAR10 (embeddings)} & KSG & $ 0.00 $ & $ 0.00 $ & $ 0.00 $ & $ 0.00 $ & $ 0.01 $ & $ 0.00 $ \\
  & WKL & $ 0.00 $ & $ 0.50 $ & $ 1.00 $ & $ 1.50 $ & $ 2.00 $ & $ 2.30 $ \\
  & MINE-DV & $ 0.00 $ & $ 0.01 $ & $ 0.01 $ & $ 0.02 $ & $ 0.01 $ & $ 0.01 $ \\
  & MINE-NWJ & $ 0.00 $ & $ 0.02 $ & $ 0.02 $ & $ 0.03 $ & $ 0.02 $ & $ 0.02 $ \\
