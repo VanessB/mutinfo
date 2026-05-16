@@ -8,7 +8,7 @@ import mutinfo
 
 
 def run_tests(distribution_factory: Callable[[float], multi_rv_frozen],
-              estimator: mutinfo.estimators.base.MutualInformationEstimator,
+              estimator: mutinfo.estimators.base.InformationEstimator,
               MI_grid: Iterable[float], n_samples: int, n_runs: int) -> numpy.ndarray:
     """
     Iteratively run mutual information estimation tests.

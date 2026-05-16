@@ -4,7 +4,7 @@ name:
   estimator: MINE-NWJ
 
 estimator:
-  _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
+  _target_: mutinfo.estimators.base.TransformedInformationEstimator
   estimator:
     _target_: mutinfo.estimators.parametric.mine.MINE
     backbone_factory:
