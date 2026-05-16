@@ -1,7 +1,6 @@
 \begin{tabular}{lccccc}
 \toprule
- & \multicolumn{5}{c}{Ground-truth Mutual Information} \\
-estimator.k_neighbors & 1 & 5 & 9 & 13 & 17 \\
+ & 1 & 5 & 9 & 13 & 17 \\
 Distribution &  &  &  &  &  \\
 \midrule
 Correlated Normal & $ 1.69 $ & $ 1.48 $ & $ 1.51 $ & $ 1.55 $ & $ 1.56 $ \\

@@ -22,7 +22,6 @@ wandb
 *.log
 *.targz
 *.zip
-*.yaml
 *.png
 *.txt
 *.ckpt

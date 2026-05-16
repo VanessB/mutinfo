@@ -1,8 +1,8 @@
-name: kNN/WKL_MAE_vs_kNN
+name: kNN/KSG_MAE_vs_kNN
 
 sources:
   KSG:
-    path: "./outputs/lowdim/2025-10-20/WKL"
+    path: "./outputs/lowdim/2025-10-20/KSG"
     aggregate: []
     pin: {}
     priority: 0

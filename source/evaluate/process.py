@@ -1,14 +1,14 @@
 import bebeziana
-import yaml
+import itertools
 import pandas
+import polars
 import re
+import yaml
 
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 
-def MAE(x, first, second):
-    return (x[first] - x[second]).abs()
 
 distribution_names = {
     "CorrelatedNormal":    "Correlated Normal",
@@ -19,321 +19,18 @@ distribution_names = {
     "UniformlyQuantized":  "Uniformly Quantized",
 }
 
-tables = {
-    "lowdim_kNN_KSG_10000": {
-        "data_paths": {
-            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
-            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
-        },
-        "target": {
-            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Number of nearest neighbours",
-        },
-        "column_to_chart": {
-            "name": "estimator.k_neighbors",
-            "apply": int,
-        },
-        "rows_to_chart": [
-            "Distribution",
-        ],
-        "fixed_columns": {"n_samples": 10000},
-        "estimators": {
-            "KSG": {
-                "min_columns": [],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-        },
-    },
-    
-    "lowdim_kNN_WKL_10000": {
-        "data_paths": {
-            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
-            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
-        },
-        "target": {
-            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Number of nearest neighbours",
-        },
-        "column_to_chart": {
-            "name": "estimator.k_neighbors",
-            "apply": int,
-        },
-        "rows_to_chart": [
-            "Distribution",
-        ],
-        "fixed_columns": {"n_samples": 10000},
-        "estimators": {
-            "WKL": {
-                "min_columns": [],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-        },
-    },
-    
-    "lowdim_DD_MINDE-DV": {
-        "data_paths": {
-            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
-            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
-        },
-        "target": {
-            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Number of nearest neighbours",
-        },
-        "column_to_chart": {
-            "name": "n_samples",
-            "apply": int,
-        },
-        "rows_to_chart": [
-            "Distribution",
-            "estimator.estimator.backbone_factory.hidden_dim"
-        ],
-        "fixed_columns": {},
-        "estimators": {
-            "MINE-DV": {
-                "min_columns": [],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-        },
-    },
 
-    "mi_estimate:base:distribution_method:GT:1k": {
-        "data_paths": {
-            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
-            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
-        },
-        "target": {
-            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Ground-truth Mutual Information",
-        },
-        "column_to_chart": {
-            "name": "distribution.mutual_information",
-            "apply": int,
-        },
-        "rows_to_chart": [
-            "Distribution",
-            "Estimator",
-        ],
-        "fixed_columns": {"n_samples": 1000},
-        "estimators": {
-            "KSG": {
-                "min_columns": ["estimator.k_neighbors"],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-            "WKL": {
-                "min_columns": ["estimator.k_neighbors"],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-            "MINE-DV": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
-                "priority": 1,
-            },
-            "MINE-NWJ": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 1,
-            },
-            "InfoNCE": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 2,
-            },
-            # "InfoNCE": {
-            #     "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-            #     "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
-            #     "priority": 1,
-            # },
-            # "MINDE-c": {
-            #     "min_columns": ["estimator_arch","mi_sigma"],
-            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
-            #     "priority": 2,
-            # },
-            # "MINDE-j": {
-            #     "min_columns": ["estimator_arch","mi_sigma"],
-            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "j"},
-            #     "priority": 2,
-            # },
-        },
-    },
-    
-    "mi_estimate:base:distribution_method:GT:10k": {
-        "data_paths": {
-            "KSG":      Path("./outputs/lowdim/2025-10-20/KSG"),
-            "WKL":      Path("./outputs/lowdim/2025-10-20/WKL"),
-            "MINE-DV":  Path("./outputs/lowdim/2025-10-20/MINE-DV"),
-            "MINE-NWJ": Path("./outputs/lowdim/2025-10-20/MINE-NWJ"),
-            "InfoNCE":  Path("./outputs/lowdim/2025-10-20/InfoNCE"),
-            "cFMMI":    Path("./outputs/lowdim/2026-01-22/cFMMI"),
-            "cFMMI-norm":    Path("./outputs/lowdim/2026-01-23/cFMMI"),
-            "cFMMI-small":    Path("./outputs/lowdim/2026-01-24/cFMMI"),
-            "cFMMI-big":    Path("./outputs/lowdim/2026-01-25/cFMMI"),
-            "cFMMI-long":    Path("./outputs/lowdim/2026-01-26/cFMMI"),
-        },
-        "target": {
-            "function": lambda x : (x["distribution.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Ground-truth Mutual Information",
-        },
-        "column_to_chart": {
-            "name": "distribution.mutual_information",
-            "apply": int,
-        },
-        "rows_to_chart": [
-            "Distribution",
-            "Estimator",
-        ],
-        "fixed_columns": {"n_samples": 10000},
-        "estimators": {
-            "KSG": {
-                "min_columns": ["estimator.k_neighbors"],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-            "WKL": {
-                "min_columns": ["estimator.k_neighbors"],
-                "fixed_columns": {},
-                "priority": 0,
-            },
-            "MINE-DV": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_fraction": 0.5},
-                "priority": 1,
-            },
-            "MINE-NWJ": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 1,
-            },
-            "InfoNCE": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 2,
-            },
-            "cFMMI": {
-                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.dropout", "estimator.parameters.reverse"],
-                "fixed_columns": {"estimator.estimate_size": 0.5},
-                "priority": 3,
-            },
-            "cFMMI-norm": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 3,
-            },
-            "cFMMI-small": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 3,
-            },
-            "cFMMI-big": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 3,
-            },
-            "cFMMI-long": {
-                "min_columns": ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.parameters.reverse"],
-                "fixed_columns": {"estimator.estimator.estimate_size": 0.5},
-                "priority": 3,
-            },
-            # "MINDE-c": {
-            #     "min_columns": ["estimator_arch","mi_sigma"],
-            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "c"},
-            #     "priority": 2,
-            # },
-            # "MINDE-j": {
-            #     "min_columns": ["estimator_arch","mi_sigma"],
-            #     "fixed_columns": {"importance_sampling": True, "estimator_type": "j"},
-            #     "priority": 2,
-            # },
-        },
-    },
-
-    "mixing_labels": {
-        "data_paths": {
-            "MINE-DV":     Path("./outputs/mixing/2025-12-14/Conv2d-MINE"),
-            "MINE-NWJ":    Path("./outputs/mixing/2025-12-14/Conv2d-NWJ"),
-        },
-        "target": {
-            "function": lambda x : (x["processed.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Ground-truth Mutual Information",
-        },
-        "column_to_chart": {
-            "name": "processed.mutual_information",
-            "apply": lambda x : f"{x:.1f}",
-        },
-        "rows_to_chart": [
-            "Estimator",
-        ],
-        "fixed_columns": {"name.distribution": "labels/MNIST"},
-        "estimators": {
-            "MINE-DV": {
-                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_size": 0.5},
-                "priority": 0,
-            },
-            "MINE-NWJ": {
-                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_size": 0.5},
-                "priority": 0,
-            },
-        },
-    },
-
-    "mixing_multiplication": {
-        "data_paths": {
-            "MINE-DV":     Path("./outputs/mixing/2025-12-14/Conv2d-MINE"),
-            "MINE-NWJ":    Path("./outputs/mixing/2025-12-14/Conv2d-NWJ"),
-        },
-        "target": {
-            "function": lambda x : (x["processed.mutual_information"] - x["mutual_information.mean"]).abs(),
-            "name": "Ground-truth Mutual Information",
-        },
-        "column_to_chart": {
-            "name": "processed.mutual_information",
-            "apply": lambda x : f"{x:.1f}",
-        },
-        "rows_to_chart": [
-            "Estimator",
-        ],
-        "fixed_columns": {"name.distribution": "modulation/multiplication/MNIST"},
-        "estimators": {
-            "MINE-DV": {
-                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_size": 0.5},
-                "priority": 0,
-            },
-            "MINE-NWJ": {
-                "min_columns": ["estimator.backbone_factory.hidden_dim", "estimator.backbone_factory.n_filters"],
-                "fixed_columns": {"estimator.estimate_size": 0.5},
-                "priority": 0,
-            },
-        },
-    },
-}
-
+def MAE(x, first, second):
+    return (x[first] - x[second]).abs()
 
 def postprocess_table(table: str) -> str:
     """
-    Oh god, why is pandas.to_latex so bad?..
+    Oh god, why is polars.to_latex so bad?..
     """
 
     sub_patterns = {
         "priority":  [re.compile(r"_\d+_"), ""],
+        #"priority":  [re.compile(r"\\_\d+\\_"), ""],
         "cline":     [re.compile(r"cline"), "cmidrule"],
         "midbottom": [re.compile(r"\\cmidrule\{\d+-\d+\}\s+\\bottomrule"), r"\\bottomrule"],
         #"header":   [re.compile(r"\\toprule.*\\\\(?P<values>)[\s&\\]*(?P<columns>)[\s&\\]*\\midrule")]
@@ -366,50 +63,73 @@ if __name__ == "__main__":
         print(table_name)
         
         final_data = []
-        for estimator_name, estimator_config in table_config["estimators"].items():
-            directory_path = Path(table_config["estimators"][estimator_name]["path"])
+        for source_name, source_config in table_config["sources"].items():
+            # Read data.
+            directory_path = Path(source_config["path"])
             data_path = directory_path / "data.csv"
             if data_path.exists():
-                data = pandas.read_csv(data_path)
+                data = polars.read_csv(data_path)
             else:
                 data = bebeziana.read(directory_path, ["setup.yaml", "results.yaml"])
                 data.to_csv(data_path)
 
-            for column, value in table_config["fixed_columns"].items():
-                data = data[data[column] == value]
+            # Pinning columns' values.
+            for column, value in itertools.chain(
+                table_config["pin"].items(),
+                source_config["pin"].items()
+            ):
+                data = data.filter(polars.col(column) == value)
 
-            for column, value in estimator_config["fixed_columns"].items():
-                data = data[data[column] == value]
-
-            data["Estimator"] = f"_{estimator_config['priority']}_{estimator_name}"
-            data["Distribution"] = data["name.distribution"].map(distribution_names).fillna(data["distribution._target_"])
-
-            data[table_config["target"]["name"]] = table_config["target"]["function"](data)
-            data[table_config["column_to_chart"]["name"]] = data[table_config["column_to_chart"]["name"]].apply(
-                table_config["column_to_chart"]["apply"]
+            # Saving source and test name.
+            data = data.with_columns(
+                Source = polars.lit(f"_{source_config['priority']}_{source_name}"),
+                Distribution = data["name.distribution"].replace(distribution_names)
             )
 
-            data = pandas.DataFrame(
-                data.groupby(
-                    table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]] + estimator_config["min_columns"],
-                    dropna=False
-                )[[table_config["target"]["name"]]].mean()
+            # Calculating targets.
+            data = data.with_columns(
+                **{target_config["name"]: target_config["function"](data) for target_config in table_config["targets"]}
             )
 
-            data = pandas.DataFrame(
-                data.groupby(
-                    table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]],
-                    dropna=False
-                )[[table_config["target"]["name"]]].min()
-            )
+            # Pre-aggregation averaging.
+            data = data.group_by(
+                table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]] + source_config["aggregate"]
+            ).agg(polars.mean(table_config["outputs"]))
 
-            data = data.unstack(table_config["column_to_chart"]["name"])
+            # Aggregation.
+            data = data.group_by(
+                table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]]
+            ).agg(polars.all().min_by(table_config["aggregation"]["by"]))
+
+            if "apply" in table_config["column_to_chart"].keys():
+                data = data.with_columns(
+                    polars.col(table_config["column_to_chart"]["name"]).map_elements(table_config["column_to_chart"]["apply"])
+                ).drop(source_config["aggregate"])
+            
+            data = data.pivot(
+                table_config["column_to_chart"]["name"],
+                index=table_config["rows_to_chart"],
+                values=table_config["aggregation"]["output"],
+                sort_columns=True
+            )
 
             final_data.append(data)
 
 
-        final_data = pandas.concat(final_data).sort_index()
+        final_data = polars.concat(final_data).sort(table_config["rows_to_chart"])
 
+        # Great tables do not support multirow cells.
+        #table = (
+        #    GT(final_data)
+        #    # Round floats to 2 decimals
+        #    .fmt_number(columns=[col for col, dtype in final_data.schema.items() if dtype in (polars.Float64, polars.Float32)], decimals=2)
+        #    # Replace missing values with "--"
+        #    .sub_missing(missing_text="--")
+        #).as_latex()
+
+        final_data = final_data.to_pandas(use_pyarrow_extension_array=False)
+        final_data = final_data.set_index(table_config["rows_to_chart"])
+        
         table = final_data.style \
             .format(
                 na_rep="--",
