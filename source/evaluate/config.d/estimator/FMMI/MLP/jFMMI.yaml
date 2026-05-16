@@ -4,7 +4,7 @@ name:
   estimator: jFMMI
 
 estimator:
-  _target_: mutinfo.estimators.base.TransformedMutualInformationEstimator
+  _target_: mutinfo.estimators.base.TransformedInformationEstimator
   transform:
     _target_: mutinfo.estimators.base.JointTransform
     transforms:

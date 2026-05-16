@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from sklearn.model_selection import train_test_split
 
-from ..base import MutualInformationEstimator
+from ..base import InformationEstimator
 
 from fmmi.utils.modules import VelocityModelMLP
 
@@ -35,7 +35,7 @@ def joint_VelocityModelMLP_wrapper(
     return backbone_factory(input_dim=input_dim, condition_dim=condition_dim, **kwargs)
 
 
-class FMMI(MutualInformationEstimator):
+class FMMI(InformationEstimator):
     def __init__(
         self,
         estimator_factory: Callable[[], fmmi.estimator.mi.FMMI]=None,
@@ -72,6 +72,7 @@ class FMMI(MutualInformationEstimator):
         self.swap_x_y = swap_x_y
         self.device = device
 
+    @InformationEstimator.check_arguments_named('x', 'y')
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray) -> float:
         """
         Estimate the value of mutual information between two random vectors
@@ -87,8 +88,6 @@ class FMMI(MutualInformationEstimator):
         mutual_information : float
             Estimated value of mutual information.
         """
-
-        self._check_arguments(x, y)
 
         if self.swap_x_y:
             x, y = y, x

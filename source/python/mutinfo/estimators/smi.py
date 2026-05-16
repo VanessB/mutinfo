@@ -7,7 +7,7 @@ from sklearn.utils.validation import check_is_fitted, _is_fitted
 from sklearn.decomposition import PCA
 from sklearn.cross_decomposition import CCA
 
-from .base import MutualInformationEstimator, TransformedMutualInformationEstimator, JointTransform
+from .base import InformationEstimator, TransformedInformationEstimator, JointTransform
 
 
 class flattening_transform(BaseEstimator, TransformerMixin):
@@ -213,7 +213,7 @@ class CanonicalCorrelationSlicing(BaseEstimator, TransformerMixin):
 
     
 def SMI(
-    estimator: MutualInformationEstimator,
+    estimator: InformationEstimator,
     projection_dim: int=1,
     n_projection_samples: int=128,
 ) -> None:
@@ -222,7 +222,7 @@ def SMI(
 
     Parameters
     ----------
-    estimator : MutualInformationEstimator
+    estimator : InformationEstimator
         Base estimator used to estimate MI between projections.
     projection_dim : int or tuple of ints, optional
         Dimensionality of the projection subspace. Use a tuple of ints
@@ -238,7 +238,7 @@ def SMI(
            with Dimension". NeurIPS, 2022.
     """
 
-    return TransformedMutualInformationEstimator(
+    return TransformedInformationEstimator(
         estimator=estimator,
         transform=RandomSlicing(projection_dim),
         n_transform_samples=n_projection_samples
@@ -246,7 +246,7 @@ def SMI(
 
 
 def PCMI(
-    estimator: MutualInformationEstimator,
+    estimator: InformationEstimator,
     projection_dim: int=1,
 ) -> None:
     """
@@ -254,7 +254,7 @@ def PCMI(
 
     Parameters
     ----------
-    estimator : MutualInformationEstimator
+    estimator : InformationEstimator
         Base estimator used to estimate MI between projections.
     projection_dim : int or tuple of ints, optional
         Dimensionality of the projection subspace. Use a tuple of ints
@@ -266,14 +266,14 @@ def PCMI(
     .. [1] TODO
     """
 
-    return TransformedMutualInformationEstimator(
+    return TransformedInformationEstimator(
         estimator=estimator,
         transform=PrincipleComponentSlicing(projection_dim)
     )
 
 
 def CCMI(
-    estimator: MutualInformationEstimator,
+    estimator: InformationEstimator,
     projection_dim: int=1,
 ) -> None:
     """
@@ -281,7 +281,7 @@ def CCMI(
 
     Parameters
     ----------
-    estimator : MutualInformationEstimator
+    estimator : InformationEstimator
         Base estimator used to estimate MI between projections.
     projection_dim : int, optional
         Dimensionality of the projection subspace. Use a tuple of ints
@@ -293,7 +293,7 @@ def CCMI(
     .. [1] TODO
     """
 
-    return TransformedMutualInformationEstimator(
+    return TransformedInformationEstimator(
         estimator=estimator,
         transform=CanonicalCorrelationSlicing(projection_dim)
     )

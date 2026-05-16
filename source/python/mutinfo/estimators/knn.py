@@ -3,7 +3,7 @@ import math
 from scipy.special import digamma, gamma, loggamma
 from sklearn.neighbors import BallTree, KDTree
 
-from .base import MutualInformationEstimator
+from .base import InformationEstimator
 
 
 _metric_tree_types = {
@@ -26,7 +26,7 @@ def ball_volume(dimensionality: int, radius: float=1.0) -> float:
     return ((math.sqrt(math.pi) * radius)**dimensionality) / math.gamma(0.5 * dimensionality + 1.0)
 
 
-class kNN_based(MutualInformationEstimator):
+class kNN_based(InformationEstimator):
     def __init__(self, k_neighbors: int=1, tree_type: str='kd_tree', tree_kwargs: dict={}, **kwargs) -> None:
         """
         Create a k-NN based mutual information estimator.
@@ -107,7 +107,7 @@ class KSG(kNN_based):
         tree_kwargs["metric"] = "chebyshev"
         super().__init__(k_neighbors, tree_type, tree_kwargs, **kwargs)
 
-    @MutualInformationEstimator.check_arguments
+    @InformationEstimator.check_arguments_named('x', 'y')
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float | tuple[float, float]:
         """
         Estimate the value of mutual information between two random vectors
@@ -293,6 +293,7 @@ class WKL(kNN_based):
 
         return log_density
 
+    @InformationEstimator.check_arguments_named('x')
     def entropy(self, x: numpy.ndarray, std: bool=False) -> float | tuple[float, float]:
         """
         Estimate the value of differential entropy using samples `x`.
@@ -328,7 +329,7 @@ class WKL(kNN_based):
         else:
             return mean
 
-    @MutualInformationEstimator.check_arguments
+    @InformationEstimator.check_arguments_named('x', 'y')
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray, std: bool=False) -> float | tuple[float, float]:
         """
         Estimate the value of mutual information between two random vectors

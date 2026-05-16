@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from sklearn.model_selection import train_test_split
 
-from ..base import MutualInformationEstimator
+from ..base import InformationEstimator
 
 _EPS = 1.0e-6
 
@@ -29,7 +29,7 @@ class _MINE_backbone(torchfd.mutual_information.MINE):
         return self.network(torch.concat([x, y], dim=-1)).squeeze() if self.concatenate else self.network(x, y).squeeze()
 
 
-class MINE(MutualInformationEstimator):
+class MINE(InformationEstimator):
     def __init__(
         self,
         backbone_factory: Callable[[], torchfd.mutual_information.MINE]=None,
@@ -69,6 +69,7 @@ class MINE(MutualInformationEstimator):
         self.clip = clip
         self.device = device
 
+    @InformationEstimator.check_arguments_named('x', 'y')
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray) -> float:
         """
         Estimate the value of mutual information between two random vectors
@@ -85,13 +86,10 @@ class MINE(MutualInformationEstimator):
             Estimated value of mutual information.
         """
 
-        self._check_arguments(x, y)
-
         if self.estimate_size is None:
             train_x, estimate_x, train_y, estimate_y = x, x, y, y
         else:
             train_x, estimate_x, train_y, estimate_y = train_test_split(x, y, test_size=self.estimate_size)
-            
         
         train_dataset = torch.utils.data.TensorDataset(
             torch.tensor(train_x, dtype=torch.float32),
