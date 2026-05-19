@@ -1,18 +1,30 @@
 import numpy
 import math
-from scipy.special import digamma, gamma, loggamma
 
 from .base import InformationEstimator
 
 class DifferentialEntropy(InformationEstimator):
-    """Gaussian approximation of differential entropy.
+    """
+    Gaussian approximation of differential entropy.
 
     For a random vector X, computes h(X) = 0.5 * log((2 pi e)^d * det(Sigma)),
     where Sigma is the sample covariance matrix estimated with `bias=True`.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, biased: bool=False) -> None:
+        """
+        Initialize the Gaussian differential entropy estimator.
+
+        Parameters
+        ----------
+        biased : bool, optional
+            If True, use the biased covariance estimator (divide by n).
+            If False (default), use the unbiased estimator (divide by n-1).
+        """
+        
         super().__init__()
+
+        self.biased = biased
 
     @InformationEstimator.check_arguments_named('x')
     def __call__(self, x: numpy.ndarray) -> float:
@@ -26,13 +38,13 @@ class DifferentialEntropy(InformationEstimator):
 
         Returns
         -------
-        float
+        differential_entropy: float
             Gaussian differential entropy estimate.
         """
 
-        x = x.reshape(x.shape[0], 1)
+        x = x.reshape(x.shape[0], -1)
         d = x.shape[1]
-        cov = numpy.cov(x, rowvar=False, bias=True)
+        cov = numpy.cov(x, rowvar=False, bias=self.biased)
         
         logdet = numpy.linalg.slogdet(cov)[1]
         
@@ -47,39 +59,60 @@ class TotalCorrelation(InformationEstimator):
     TC(X_1, ..., X_k) = sum_i h(X_i) - h(X_1, ..., X_k).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, biased: bool=False) -> None:
+        """
+        Initialize the Gaussian total correlation estimator.
+
+        Parameters
+        ----------
+        biased : bool, optional
+            If True, use the biased covariance estimator (divide by n).
+            If False (default), use the unbiased estimator (divide by n-1).
+        """
+        
         super().__init__()
 
-    def __call__(self, *args: numpy.ndarray) -> float:
+        self.biased = biased
+
+    @InformationEstimator.check_arguments
+    def __call__(self, *arrays: numpy.ndarray) -> float:
         """
         Estimate total correlation.
 
         Parameters
         ----------
-        *args : numpy.ndarray
+        *arrays : numpy.ndarray
             Variable number of arrays, each of shape (n_samples, d_i) or (n_samples,).
 
         Returns
         -------
-        float
+        total_correlation: float
             Gaussian total correlation estimate.
         """
 
-        arrays = [array.reshape(array.shape[0], 1) for array in args]
+        is_one_array = len(arrays) == 1
+        arrays = [array.reshape(array.shape[0], -1) for array in arrays]
 
-        joint = numpy.hstack(arrays)
-        cov_joint = numpy.cov(joint, rowvar=False, bias=True)
-        logdet_joint = numpy.linalg.slogdet(cov_joint)[1]
+        joint  = arrays[0] if is_one_array else numpy.hstack(arrays)
+        cov    = numpy.cov(joint, rowvar=False, bias=self.biased)
+        logdet = numpy.linalg.slogdet(cov)[1]
 
-        sum_logdet = 0.0
-        for array in arrays:
-            if len(array.shape) == 1 or array.shape[1] == 1:
-                sum_logdet += math.log(array.var(ddof=1))
-            else:
-                cov = numpy.cov(array, rowvar=False, bias=True)
-                sum_logdet += numpy.linalg.slogdet(cov)[1]
+        # Treat one array as a stack of d one-dimensional arrays.
+        if is_one_array:
+            sum_logdet_diag = numpy.log(numpy.diag(cov)).sum()
+        else:
+            sum_logdet_diag = 0.0
+            start = 0
+            for array in arrays:
+                size = array.shape[-1]
+                end  = start + size
+                
+                block = cov[start:end,start:end]
+                sum_logdet_diag += numpy.linalg.slogdet(block)[1]
 
-        return 0.5 * (sum_logdet - logdet_joint)
+                start = end
+    
+        return 0.5 * (sum_logdet_diag - logdet)
 
 
 class MutualInformation(TotalCorrelation):
@@ -89,8 +122,10 @@ class MutualInformation(TotalCorrelation):
     Alias for total correlation in the case of exactly two inputs.
     """
 
+    @InformationEstimator.check_arguments_named('x', 'y')
     def __call__(self, x: numpy.ndarray, y: numpy.ndarray) -> float:
-        """Estimate mutual information between X and Y.
+        """
+        Estimate mutual information between X and Y.
 
         Parameters
         ----------
@@ -101,9 +136,10 @@ class MutualInformation(TotalCorrelation):
 
         Returns
         -------
-        float
+        mutual_information: float
             Gaussian mutual information estimate.
         """
+
         return super().__call__(x, y)
 
 
@@ -115,43 +151,61 @@ class DualTotalCorrelation(InformationEstimator):
     where X_{-i} denotes the joint vector of all variables except the i-th.
     """
 
-    def __init__(self) -> None:
-        super().__init__()
-
-    def __call__(self, *args: numpy.ndarray) -> float:
-        """Estimate dual total correlation.
+    def __init__(self, biased: bool=False) -> None:
+        """
+        Initialize the Gaussian dual total correlation estimator.
 
         Parameters
         ----------
-        *args : numpy.ndarray
+        biased : bool, optional
+            If True, use the biased covariance estimator (divide by n).
+            If False (default), use the unbiased estimator (divide by n-1).
+        """
+        
+        super().__init__()
+
+        self.biased = biased
+
+    @InformationEstimator.check_arguments
+    def __call__(self, *arrays: numpy.ndarray) -> float:
+        """
+        Estimate dual total correlation.
+
+        Parameters
+        ----------
+        *arrays : numpy.ndarray
             Variable number of arrays, each of shape (n_samples, d_i) or (n_samples,).
 
         Returns
         -------
-        float
+        dual_total_correlation: float
             Gaussian dual total correlation estimate.
         """
 
-        n_arrays = len(args)
-        if n_arrays == 1:
-            return 0.0
+        n_arrays = len(arrays)
+        is_one_array = n_arrays == 1
+        arrays = [array.reshape(array.shape[0], -1) for array in arrays]
 
-        arrays = [array.reshape(array.shape[0], 1) for array in args]
-        dims = [array.shape[1] for array in arrays]
+        joint  = arrays[0] if is_one_array else numpy.hstack(arrays)
+        cov    = numpy.cov(joint, rowvar=False, bias=self.biased)
+        logdet = numpy.linalg.slogdet(cov)[1]
 
-        joint = numpy.hstack(arrays)
-        cov_joint = numpy.cov(joint, rowvar=False, bias=True)
-        logdet_joint = numpy.linalg.slogdet(cov_joint)[1]
-
-        sum_logdet_leave_one = 0.0
-        start = 0
-        for index in range(n_arrays):
-            end = start + dims[index]
-            keep = list(range(start)) + list(range(end, cov_joint.shape[0]))
-            
-            cov_minus_i = cov_joint[numpy.ix_(keep, keep)]
-            sum_logdet_leave_one += numpy.linalg.slogdet(cov_minus_i)[1]
-            
-            start = end
-
-        return 0.5 * (sum_logdet_leave_one - (n_arrays - 1) * logdet_joint)
+        # Treat one array as a stack of d one-dimensional arrays.
+        if is_one_array:
+            # Efficient calculation using the inverse matrix trick.
+            inverse_cov = numpy.linalg.inv(cov)
+            return 0.5 * (numpy.log(numpy.diag(inverse_cov)).sum() + logdet)
+        else:
+            sum_logdet_leave_one = 0.0
+            start = 0
+            for array in arrays:
+                size = array.shape[-1]
+                end  = start + size
+                
+                keep = list(range(start)) + list(range(start + size, cov.shape[0]))
+                block = cov[numpy.ix_(keep, keep)]
+                sum_logdet_leave_one += numpy.linalg.slogdet(block)[1]
+                
+                start = end
+    
+            return 0.5 * (sum_logdet_leave_one - (n_arrays - 1) * logdet)

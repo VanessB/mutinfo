@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.05.1
+
+- Added Gaussian-based estimators.
+- Minor infrastructure changes.
+
 ## 2026.02.1
 
 - Added MINDE and FMMI estimators.
