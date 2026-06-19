@@ -1,0 +1,19 @@
+# @package _global_
+
+name:
+  distribution: RareEventChannel
+
+distribution:
+  _target_: mutinfo.distributions.base.RareEventChannel
+  mutual_information: ${processed.mutual_information}
+  dimensionality: ${raw.dimensionality}
+
+key:
+  distribution: ${name.distribution}/dim=${distribution.dimensionality}/FP=${round:${distribution.failure_probability}}/MI=${round:${raw.mutual_information}}
+
+hydra:
+  sweeper:
+    params:
+      ++raw.mutual_information: ${default_grid.nonzero_mutual_information}
+      ++raw.dimensionality: ${default_grid.dimensionality}
+      ++distribution.failure_probability: 0.3, 0.5, 0.7

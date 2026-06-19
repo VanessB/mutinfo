@@ -116,7 +116,11 @@ if __name__ == "__main__":
             final_data.append(data)
 
 
+        output_path = Path("./tables") / (table_name + ".csv")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
         final_data = polars.concat(final_data).sort(table_config["rows_to_chart"])
+        final_data.write_csv(output_path)
 
         # Great tables do not support multirow cells.
         #table = (
@@ -144,8 +148,7 @@ if __name__ == "__main__":
             )
         table = postprocess_table(table)
 
-        output_path = Path("./tables") / table_name
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
+        output_path = Path("./tables") / (table_name + ".tex")
+        
         with open(output_path, 'w') as table_file:
             table_file.write(table)

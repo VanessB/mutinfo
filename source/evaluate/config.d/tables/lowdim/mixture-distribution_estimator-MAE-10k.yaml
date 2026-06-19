@@ -1,30 +1,30 @@
-name: lowdim/continuous/distribution_estimator-MAE-${pin.n_samples}
+name: lowdim/mixture/distribution_estimator-MAE-${pin.n_samples}
 
 sources:
   KSG:
-    path: "./outputs/lowdim/2025-10-20/KSG"
+    path: "./outputs/lowdim/2026-03-17/KSG"
     aggregate: ["estimator.k_neighbors"]
     pin: {}
     priority: 0
   WKL:
-    path: "./outputs/lowdim/2025-10-20/WKL"
+    path: "./outputs/lowdim/2026-03-17/WKL"
     aggregate: ["estimator.k_neighbors"]
     pin: {}
     priority: 0
   MINE-DV:
-    path: "./outputs/lowdim/2025-10-20/MINE-DV"
+    path: "./outputs/lowdim/2026-03-17/MINE-DV"
     aggregate: ["estimator.estimator.backbone_factory.hidden_dim"]
     pin:
       estimator.estimator.estimate_size: 0.5
     priority: 1
   MINE-NWJ:
-    path: "./outputs/lowdim/2025-10-20/MINE-NWJ"
+    path: "./outputs/lowdim/2026-03-17/MINE-NWJ"
     aggregate: ["estimator.estimator.backbone_factory.hidden_dim"]
     pin:
       estimator.estimator.estimate_size: 0.5
     priority: 1
   InfoNCE:
-    path: "./outputs/lowdim/2025-10-20/InfoNCE"
+    path: "./outputs/lowdim/2026-03-17/InfoNCE"
     aggregate: ["estimator.estimator.backbone_factory.hidden_dim", "estimator.estimator.estimate_batch_size"]
     pin:
       estimator.estimator.estimate_size: 0.5
@@ -35,8 +35,8 @@ targets:
     function:
       _target_: __main__.MAE
       _partial_: true
-      first: "distribution.mutual_information"
-      second: "mutual_information.mean"
+      first: "target"
+      second: "estimate.mean"
 
 outputs: ["MAE"]
 

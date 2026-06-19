@@ -13,7 +13,7 @@ from ...utils.checks import _check_dimension_value, _check_mutual_information_va
 
 _EPS = 1.0e-6
 
-def _entropy_to_length_and_remainder(entropy: float) -> tuple[int, float]:
+def _entropy_to_n_labels_and_residual(entropy: float) -> tuple[int, float]:
     # Shannon entropy is non-negative.
     _check_mutual_information_value(entropy, "entropy")
 
@@ -38,11 +38,11 @@ def _entropy_to_length_and_remainder(entropy: float) -> tuple[int, float]:
 
     return n_labels, optimal_p
 
-def _length_and_remainder_to_probabilities(length: int, residual: float) -> numpy.ndarray:
-    if length == 1:
+def _n_labels_and_residual_to_probabilities(n_labels: int, residual: float) -> numpy.ndarray:
+    if n_labels == 1:
         return numpy.array([1.0])
     
-    probabilities = numpy.full((length,), (1.0 - residual) / (length - 1))
+    probabilities = numpy.full((n_labels,), (1.0 - residual) / (n_labels - 1))
     probabilities[-1] = residual
 
     return probabilities
@@ -63,7 +63,7 @@ def entropy_to_probabilities(entropy: float) -> numpy.ndarray:
         Probability vector.
     """
 
-    return _length_and_remainder_to_probabilities(*_entropy_to_length_and_remainder(entropy))
+    return _length_and_residual_to_probabilities(*_entropy_to_length_and_residual(entropy))
 
 def _scalar_reroll_probability_to_mutual_information(
     reroll_probability: float,
@@ -205,6 +205,133 @@ def mutual_information_to_reroll_probability(
     return reroll_probability
 
 
+class segmented_distribution(rv_discrete_frozen):
+    def __init__(self, n_labels: tuple[int], probabilities: tuple[float]):
+        """
+        Initialize a mixture of discrete uniform distributions with contiguous supports.
+        
+        Parameters
+        ----------
+        n_labels : tuple of int
+            The size of each discrete uniform segment.
+        probabilities : tuple of float
+            The mixing weights for each segment. Must sum to 1.
+        """
+
+        if len(n_labels) != len(probabilities):
+            raise ValueError("Expected `n_labels` and `probabilities` to have the same length.")
+        
+        self._n_labels = numpy.asarray(n_labels, dtype=numpy.int64)
+        self._probabilities = numpy.asarray(probabilities, dtype=numpy.float64)
+
+        if numpy.any(self._n_labels <= 0):
+            raise ValueError("All segment sizes (n_labels) must be positive integers.")
+        
+        if not numpy.isclose(numpy.sum(self._probabilities), 1.0):
+            raise ValueError("Probabilities must sum to 1.0.")
+
+        self._n_labels_cumsum = numpy.zeros(len(self._n_labels) + 1, dtype=numpy.int64)
+        self._n_labels_cumsum[1:] = numpy.cumsum(self._n_labels)
+
+        self._prob_cumsum = numpy.zeros(len(self._probabilities) + 1, dtype=numpy.float64)
+        self._prob_cumsum[1:] = numpy.cumsum(self._probabilities)
+
+        self._dist = randint
+        self._selector_dist = rv_sample(values=(numpy.arange(len(self._n_labels)), probabilities))
+
+    def rvs(self, size: int) -> numpy.array:
+        result = numpy.empty(size, dtype=numpy.int64)
+
+        segment_indices = self._selector_dist.rvs(size=size)
+        for index in range(len(self._n_labels)):
+            mask = (segment_indices == index)
+            result[mask] = self._n_labels_cumsum[index] + self._dist.rvs(low=0, high=self._n_labels[index], size=mask.sum())
+
+        return result
+
+    def pmf(self, x: float | numpy.ndarray) -> float | numpy.ndarray:
+        """
+        Probability mass function.
+        
+        Parameters
+        ----------
+        x : float or numpy.ndarray
+            Points at which to evaluate the PMF.
+            
+        Returns
+        -------
+        float or numpy.ndarray
+            Probability mass at x.
+        """
+
+        x = numpy.asarray(x)
+        # Find which segment x belongs to: C_k <= x < C_{k+1}.
+        # numpy.searchsorted(..., side='right') - 1 gives the index k.
+        indices = numpy.searchsorted(self._n_labels_cumsum, x, side='right') - 1
+        
+        # Mask for values within the total support [0, sum(n_labels)-1].
+        mask = (indices >= 0) & (indices < len(self._n_labels))
+        
+        result = numpy.zeros(x.shape, dtype=numpy.float64)
+        # PMF(x) = p_k / n_k.
+        result[mask] = self._probabilities[indices[mask]] / self._n_labels[indices[mask]]
+        
+        return result if x.ndim > 0 else result.item()
+
+    def cdf(self, x: float | numpy.ndarray) -> float | numpy.ndarray:
+        """
+        Cumulative distribution function.
+        
+        Parameters
+        ----------
+        x : float or numpy.ndarray
+            Points at which to evaluate the CDF.
+            
+        Returns
+        -------
+        float or numpy.ndarray
+            Cumulative probability at x.
+        """
+        x = numpy.asarray(x)
+        indices = numpy.searchsorted(self._n_labels_cumsum, x, side='right') - 1
+        
+        # x < 0
+        below_support = (indices < 0)
+        # x >= total_sum
+        above_support = (indices >= len(self._n_labels))
+        # x within support
+        within_support = (~below_support) & (~above_support)
+
+        result = numpy.zeros(x.shape, dtype=numpy.float64)
+        result[above_support] = 1.0
+        
+        # F(x) = Prob(S < k) + (x - C_k + 1) * (p_k / n_k)
+        k = indices[within_support]
+        c_k = self._n_labels_cumsum[k]
+        p_k = self._probabilities[k]
+        n_k = self._n_labels[k]
+        
+        x_val = numpy.floor(x[within_support])
+        result[within_support] = self._prob_cumsum[k] + (x_val - c_k + 1) * (p_k / n_k)
+        
+        return result if x.ndim > 0 else result.item()
+
+    def entropy(self):
+        """
+        Calculate the Shannon entropy of the distribution.
+        
+        Returns
+        -------
+        float
+            Entropy in nats.
+        """
+        
+        entropy_s = -xlogy(self._probabilities, self._probabilities).sum()
+        entropy_x_given_s = (self._probabilities * numpy.log(self._n_labels)).sum()
+        
+        return entropy_s + entropy_x_given_s
+
+
 class splitted_rv_sample(rv_sample, BaseMutualInformationTest):
     """
     Frozen discrete distribution with known mutual information.
@@ -274,7 +401,7 @@ class symmetric_noisy_channel(rv_discrete_frozen, BaseMutualInformationTest):
 
     def __init__(
         self,
-        values: tuple[numpy.ndarray, numpy.ndarray],
+        labels_distribution: rv_discrete_frozen,
         reroll_probability: float=0.0,
         permutation: numpy.ndarray=None,
     ) -> None:
@@ -283,8 +410,8 @@ class symmetric_noisy_channel(rv_discrete_frozen, BaseMutualInformationTest):
 
         Parameters
         ----------
-        values : tuple of two array_like.
-            Values and corresponding probabilities of the input (marginal PMF).
+        labels_distribution: rv_discrete_frozen
+            Initial distribution of labels.
         reroll_probability : float, optional
             Probability of transmitting random noise instead of input.
             Not the probability of an error!
@@ -292,9 +419,8 @@ class symmetric_noisy_channel(rv_discrete_frozen, BaseMutualInformationTest):
             Permutation to be applied to Y. No permutation if `None`.
         """
         
-        self._dist = rv_sample(values=values)
+        self._dist = labels_distribution
         self._reroll_dist = uniform()
-        self._reroll_outcome_dist = randint(low=0, high=len(self.values[0]))
 
         self.reroll_probability = reroll_probability
         self.permutation = permutation
@@ -319,20 +445,12 @@ class symmetric_noisy_channel(rv_discrete_frozen, BaseMutualInformationTest):
 
         if self.reroll_probability > 0.0:
             rerolled = self._reroll_dist.rvs(size=size) <= self.reroll_probability
-            y[rerolled] = self.values[0][self._reroll_outcome_dist.rvs(size=rerolled.sum())]
+            y[rerolled] = self.values[0][self._dist.rvs(size=rerolled.sum())]
 
         if not (self.permutation is None):
             y = self.permutation[y]
         
         return x, y
-
-    @property
-    def values(self) -> tuple[numpy.ndarray, numpy.ndarray]:
-        """
-        Values and corresponding probabilities of the input (marginal PMF).
-        """
-
-        return self._dist._ctor_param["values"]
 
     @property
     def error_probability(self) -> float:
@@ -371,14 +489,7 @@ class symmetric_noisy_channel(rv_discrete_frozen, BaseMutualInformationTest):
             Mutual information.
         """
 
-        n_values = len(self.values[0])
-        
-        x_probabilities = self.values[1]
-        y_probabilities = (1.0 - self.reroll_probability) * x_probabilities + self.reroll_probability / n_values
-        y_conditional_probabilities = numpy.eye(n_values) * (1.0 - self.reroll_probability) + \
-                numpy.ones((n_values, n_values)) * self.reroll_probability / n_values
-
-        y_entropy = -xlogy(y_probabilities, y_probabilities).sum()
-        y_conditional_entropy = -(x_probabilities * xlogy(y_conditional_probabilities, y_conditional_probabilities).sum(axis=0)).sum()
-        
-        return y_entropy - y_conditional_entropy
+        if self.reroll_probability == 0.0:
+            return self._dist.entropy()
+        else:
+            raise NotImplementedError

@@ -1,4 +1,4 @@
-name: continuous/distribution_estimator-estimate-${pin.n_samples}
+name: lowdim/continuous/distribution_estimator-estimate-${pin.n_samples}
 
 sources:
   KSG:

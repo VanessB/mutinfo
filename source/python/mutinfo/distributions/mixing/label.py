@@ -3,12 +3,15 @@ import math
 
 from collections import defaultdict, Counter
 from collections.abc import Sequence
-from scipy.stats import randint
+
+from scipy.stats import randint, uniform
 from scipy.stats._distn_infrastructure import rv_frozen, rv_discrete_frozen
 from scipy.stats._multivariate import multi_rv_frozen
+
 from typing import Any
 
 from ..tools import BaseMutualInformationTest
+from ..base.discrete import symmetric_noisy_channel
 
 
 class subsampler(multi_rv_frozen):
@@ -262,5 +265,56 @@ class mixed_by_label(multi_rv_frozen, BaseMutualInformationTest):
 
         if len(self._marginal_distributions) != 2:
             raise ValueError("Mutual information is only defined for pairs of random variables.")
+        
+        return self._labels_distribution.mutual_information
+
+
+class uniform_mixed_by_label(mixed_by_label):
+    """
+    A faster version with uniform marginals.
+    """
+
+    def __init__(
+        self,
+        labels_distribution: symmetric_noisy_channel
+    ) -> None:
+        super().__init__(marginal_distributions=None, labels_distribution=labels_distribution)
+
+        self._dist = uniform()
+
+    def rvs(self, size: int=1) -> list:
+        """
+        Random variate.
+
+        Parameters
+        ----------
+        size : int, optional
+            Number of samples.
+
+        Returns
+        -------
+        x_1, ..., x_k : numpy.ndarray
+            Random sampling.
+        """
+
+        labels_tuple = self._labels_distribution.rvs(size=size)
+
+        sampling = [
+            self._labels_distribution._dist.cdf(labels-1) + self._labels_distribution._dist.pmf(labels) * self._dist.rvs(size=size)
+            for labels in labels_tuple
+        ]
+
+        return tuple(sampling)
+
+    @property
+    def mutual_information(self) -> float:
+        """
+        Mutual information.
+
+        Returns
+        -------
+        mutual_information : float
+            Mutual information.
+        """
         
         return self._labels_distribution.mutual_information
