@@ -1,7 +1,7 @@
 import math
 import numpy
 
-from scipy.special import ndtr, ndtri
+from scipy.special import ndtr, ndtri, xlogy
 from scipy.stats import ortho_group
 from scipy.stats._distn_infrastructure import rv_frozen
 from scipy.stats._multivariate import multi_rv_frozen
@@ -14,6 +14,7 @@ from . import smoothed_uniform
 from . import student
 from .. import tools
 
+from ..mixing import label
 from ...utils.checks import _check_dimension_value, _check_mutual_information_value
 
 
@@ -320,7 +321,7 @@ def UniformlyQuantized(
     base_rv: rv_frozen,
     normalize: bool=False,
     randomize_interactions: bool=False
-) -> quantized.quantized:
+) -> tools.stacked_multi_rv_frozen:
     """
     Create a two-dimensional mixed-type distribution
     given the value of the mutual information between the components.
@@ -397,8 +398,8 @@ def SmoothedDiscreteUniform(
     randomize_interactions: bool=False
 ) -> smoothed_uniform.smoothed_discrete_uniform:
     """
-    Create a multivariate mixture of uniform distributions
-    with defined mutual information between subvectors.
+    Create a multivariate mixture of uniform distributions with defined
+    mutual information between subvectors.
 
     Parameters
     ----------
@@ -419,10 +420,6 @@ def SmoothedDiscreteUniform(
         An instance of mixture.mixture_uniform
         with the provided value of the mutual information.
     """
-
-    # Minimal allowed alphabet size.
-    #alphabet_size = numpy.full(dimensionality, int(math.ceil(math.exp(mutual_information))), dtype=int)
-    #alphabet_size = max(2, int(math.ceil(mutual_information)))
     
     componentwise_mutual_information = _distribute_mutual_information(mutual_information, dimensionality, not randomize_interactions)
     alphabet_size = numpy.ceil(numpy.exp(componentwise_mutual_information)).astype(int)
@@ -433,6 +430,54 @@ def SmoothedDiscreteUniform(
     )
     
     return smoothed_uniform.smoothed_discrete_uniform(alphabet_size, inverse_noise_scale, normalize)
+
+
+def RareEventChannel(
+    mutual_information: float,
+    dimensionality: int,
+    failure_probability: float,
+    randomize_interactions: bool=False
+) -> tools.stacked_multi_rv_frozen:
+    """
+    Create a continuous multivariate uniform rare event channel with defined
+    mutual information between subvectors.
+
+    Parameters
+    ----------
+    mutual_information : float
+        Mutual information (lies within [0.0; +inf)).
+    dimensionality : int
+        Dimensionality of the vectors.
+    failure_probability : float
+        Probability of channel transmitting no information.
+        If equals 0, the channel becomes a continuous (dequantized) version of
+        `NoiselessChannel`. If equals 1, the joint distribution becomes
+        uniform on a hypercube.
+
+    Returns
+    -------
+    random_variable : mixture.mixture_uniform
+        An instance of mixture.mixture_uniform
+        with the provided value of the mutual information.
+    """
+
+    _probabilities = numpy.array([failure_probability, 1.0 - failure_probability])
+    correction_term      = -xlogy(_probabilities, _probabilities).sum() * dimensionality
+    if mutual_information < correction_term:
+        raise ValueError(f"Impossible to create a rare event channel distribution with the desired mutual information. The latter should be at least {correction_term:.2f} nat")
+
+    n_labels, residual = discrete._entropy_to_n_labels_and_residual((mutual_information - correction_term) / (dimensionality * (1.0 - failure_probability)))
+
+    if n_labels == 1:
+        probabilities = _probabilities
+        n_labels      = (1, 1)
+    else:
+        probabilities = (_probabilities[0], _probabilities[1] * (1.0 - residual), _probabilities[1] * residual)
+        n_labels      = (1, n_labels - 1, 1)
+
+    labels_distribution = discrete.symmetric_noisy_channel(labels_distribution=discrete.segmented_distribution(n_labels, probabilities))
+    
+    return tools.stacked_multi_rv_frozen(label.uniform_mixed_by_label(labels_distribution), dimensionality)
 
 
 def NoiselessChannel(
