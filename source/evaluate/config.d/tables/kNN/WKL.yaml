@@ -2,7 +2,7 @@ name: kNN/WKL_MAE_vs_kNN
 
 sources:
   KSG:
-    path: "./outputs/lowdim/2025-10-20/WKL"
+    path: "./outputs/lowdim/continuous/WKL"
     aggregate: []
     pin: {}
     priority: 0
@@ -12,8 +12,8 @@ targets:
     function:
       _target_: __main__.MAE
       _partial_: true
-      first: "distribution.mutual_information"
-      second: "mutual_information.mean"
+      first: "target"
+      second: "estimate.mean"
 
 outputs: ["MAE"]
 
