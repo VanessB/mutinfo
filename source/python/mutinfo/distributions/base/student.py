@@ -98,7 +98,7 @@ class correlated_multivariate_student(multi_rv_frozen, BaseMutualInformationTest
         normal_x, normal_y = self.normal.rvs(size)
         squared_magnitude = self.chi2.rvs(size)
 
-        return normal_x * numpy.sqrt(squared_magnitude[:,None]), normal_y * numpy.sqrt(squared_magnitude[:,None])
+        return normal_x / numpy.sqrt(squared_magnitude[:,None]), normal_y / numpy.sqrt(squared_magnitude[:,None])
 
     @property
     def mutual_information(self) -> float:
