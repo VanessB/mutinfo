@@ -1,5 +1,4 @@
-n_runs: 5
-seed: 42
+seeds: ${range:42,47}
 to_be_seeded:
   - basic
   - numpy
