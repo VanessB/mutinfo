@@ -44,9 +44,10 @@ key:
 hydra:
   sweeper:
     params:
-      ++estimator.estimator.n_train_steps: 100, 316, 1000, 3162, 10000
-      ++estimator.estimator.estimator_factory.reverse: False, True
-      ++estimator.estimator.backbone_factory.dropout: 0.01, 0.05
-      ++estimator.estimator.optimizer_factory.weight_decay: 0.0, 1.0e-4
+      #++estimator.estimator.n_train_steps: 100, 316, 1000, 3162, 10000
+      #++estimator.estimator.estimator_factory.reverse: False, True
+      #++estimator.estimator.backbone_factory.dropout: 0.01, 0.05
+      #++estimator.estimator.optimizer_factory.weight_decay: 0.0, 1.0e-4
+      #++estimator.estimator.estimate_size: null, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
       ++estimator.estimator.backbone_factory.hidden_dim: 64, 128, 256, 512
-      ++estimator.estimator.estimator_factory.marginalizer._target_: fmmi.estimator.mi.generate_permutation, fmmi.estimator.mi.generate_derangement
+      #++estimator.estimator.estimator_factory.marginalizer._target_: fmmi.estimator.mi.generate_permutation, fmmi.estimator.mi.generate_derangement

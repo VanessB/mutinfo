@@ -1,3 +1,4 @@
+import argparse
 import bebeziana
 import itertools
 import logging
@@ -31,6 +32,49 @@ DISTRIBUTION_NAMES = {
 def MAE(x, first, second):
     return (x[first] - x[second]).abs()
 
+def RMAE(x, first, second):
+    return (x[second] / x[first] - 1.0).abs()
+
+def format_uncertainty(x, value, uncertainty):
+    value, uncertainty = x[value], x[uncertainty]
+    
+    is_valid = uncertainty > 0
+
+    # log10(uncertainty) floor + 1 matches the 2 significant figures rule for error
+    decimals = (
+        (- (polars.when(is_valid).then(uncertainty).otherwise(1.0).log10().floor()).cast(polars.Int32) + 1)
+        .clip(lower_bound=0) # Negative decimals (large uncertainties) map to 0 for string formatting
+    )
+
+    # Create a temporary DataFrame to process rows by their specific decimal precision
+    df = polars.DataFrame({
+        "v": value,
+        "u": uncertainty,
+        "is_valid": is_valid
+    }).with_columns(
+        polars.when(polars.col("is_valid"))
+        .then(decimals)
+        .otherwise(0)
+        .alias("decimals")
+    )
+
+    # Construct the formatted string dynamically for each decimal group
+    return (
+        df.with_columns(
+            polars.struct(["v", "u", "decimals", "is_valid"])
+            .map_elements(
+                lambda row: (
+                    f"${row['v']:.{row['decimals']}f} \\pm {row['u']:.{row['decimals']}f}$"
+                    if row["is_valid"]
+                    else f"${row['v']} \\pm {row['u']}$"
+                ),
+                return_dtype=polars.String
+            )
+            .alias("formatted")
+        )
+        .get_column("formatted")
+    )
+
 def postprocess_table(table: str) -> str:
     """
     Clean up pandas.to_latex output using regex.
@@ -47,7 +91,11 @@ def postprocess_table(table: str) -> str:
 
     return table
 
-def table_to_latex(table: polars.DataFrame, index_columns: list[str]) -> str:
+def table_to_latex(
+    table: polars.DataFrame,
+    index_columns: list[str],
+    formatter=None,
+) -> str:
     """
     Converts a Polars DataFrame to a formatted LaTeX table via Pandas.
     """
@@ -56,11 +104,15 @@ def table_to_latex(table: polars.DataFrame, index_columns: list[str]) -> str:
     table = table.to_pandas(use_pyarrow_extension_array=False)
     table = table.set_index(index_columns)
 
+    # Default formatter.
+    if formatter is None:
+        formatter={column: '${:.2f}$' for column in table.select_dtypes(include='float').columns}
+
     try:
         table_latex = table.style \
             .format(
                 na_rep="--",
-                formatter="$ {:0.2f} $".format
+                formatter=formatter
             ) \
             .to_latex(
                 hrules=True,
@@ -74,7 +126,29 @@ def table_to_latex(table: polars.DataFrame, index_columns: list[str]) -> str:
 
     except Exception as e:
         logger.error(f"LaTeX conversion failed: {e}")
-        return pd_df.to_string() # Fallback to string
+        return table_latex.to_string() # Fallback to string
+
+
+def table_to_markdown(
+    table: polars.DataFrame,
+    index_columns: list[str],
+) -> str:
+    """
+    Converts a Polars DataFrame to a formatted Markdown table via Pandas.
+    """
+
+    # Conversion to Pandas is necessary for the .style API
+    table = table.to_pandas(use_pyarrow_extension_array=False)
+    table = table.set_index(index_columns)
+
+    try:
+        table_markdown = table.to_markdown()
+          
+        return table_markdown
+
+    except Exception as e:
+        logger.error(f"Markdown conversion failed: {e}")
+        return table.to_string() # Fallback to string
     
 
 def load_configs(path: Path, ignore_parts: list[str]=[".ipynb_checkpoints"]) -> list[dict[str, Any]]:
@@ -96,16 +170,18 @@ def load_source(
     path: Path,
     name: str="data.parquet",
     config_files: list[str]=["setup.yaml", "results.yaml"],
-    save: bool=True
+    save: bool=True,
+    use_cache: bool=True,
 ) -> polars.DataFrame:
     file_path = path / name
-  
-    if file_path.exists():
+
+    if use_cache and file_path.exists():
         return polars.read_parquet(file_path)
     
     # Read and cache source from individual files if parquet doesn't exist.
     data = polars.from_pandas(bebeziana.read(path, config_files))
     if save:
+        logger.info(f"Generating a parquet file at {path}")
         data.write_parquet(file_path)
 
     return data
@@ -138,7 +214,7 @@ def process_source(
 
     # Pre-aggregation averaging.
     data = data.group_by(
-        table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]] + source_config["aggregate"]
+        table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]] + list(source_config["aggregate"])
     ).agg(polars.mean(table_config["outputs"]))
 
     # Aggregation.
@@ -146,10 +222,18 @@ def process_source(
         table_config["rows_to_chart"] + [table_config["column_to_chart"]["name"]]
     ).agg(polars.all().min_by(table_config["aggregation"]["by"]))
 
+    # Calculating postprocessing targets.
+    if "postprocessing" in table_config.keys():
+        data = data.with_columns(
+            **{target_config["name"]: target_config["function"](data) for target_config in table_config["postprocessing"]}
+        )
+
+    data = data.drop(set(source_config["aggregate"]) - {table_config["aggregation"]["output"]}) # Be careful not to drop the column we want to output.
+
     if "apply" in table_config["column_to_chart"].keys():
         data = data.with_columns(
             polars.col(table_config["column_to_chart"]["name"]).map_elements(table_config["column_to_chart"]["apply"])
-        ).drop(source_config["aggregate"])
+        )
 
     data = data.pivot(
         table_config["column_to_chart"]["name"],
@@ -160,27 +244,37 @@ def process_source(
 
     return data
 
-def create_table(table_config: dict[str, Any]) -> polars.DataFrame:
+def create_table(table_config: dict[str, Any], use_cache: bool=True) -> polars.DataFrame:
     sources_data = []
     
     for source_name, source_config in table_config["sources"].items():
         logger.info(f"Processing source: {source_name}")
         
-        data = load_source(Path(source_config["path"]))
+        data = load_source(Path(source_config["path"]), use_cache=use_cache)
         processed = process_source(data, source_name, source_config, table_config)
         sources_data.append(processed)
   
-    return polars.concat(sources_data).sort(table_config["rows_to_chart"])
+    return polars.concat(sources_data, how="diagonal").sort(table_config["rows_to_chart"])
 
 
 if __name__ == "__main__":
-    configs_path = Path("./config.d/tables")
-    output_path  = Path("./tables")
+    parser = argparse.ArgumentParser(
+        prog='Results Processor',
+        description='This program reads, aggregates and outpus experimental data as formatted tables. The tables are described using .yaml config files.',
+        epilog='MUTINFO'
+    )
 
-    output_path.mkdir(parents=True, exist_ok=True)
+    parser.add_argument("-c", "--config", type=Path, help="configs path", default="./config.d/tables")
+    parser.add_argument("-o", "--output", type=Path, help="output path", default="./tables")
+
+    parser.add_argument("-r", "--recache", action='store_true', help="regenerate cache files", default=False)
+
+    arguments = parser.parse_args()
+
+    arguments.output.mkdir(parents=True, exist_ok=True)
     
     try:
-        configs = load_configs(configs_path)
+        configs = load_configs(arguments.config)
     except Exception as exception:
         logger.error(f"Failed to load configs: {exception}")
         exit(1)
@@ -190,17 +284,26 @@ if __name__ == "__main__":
         logger.info(f"Creating table: {table_name}")
   
         try:
-            table = create_table(table_config)
+            table = create_table(table_config, not arguments.recache)
   
             # Save CSV
-            csv_path = output_path / f"{table_name}.csv"
+            csv_path = arguments.output / f"{table_name}.csv"
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
             table.write_csv(csv_path) # Fixed: changed file_path to csv_path
   
             # Save LaTeX
-            latex_path = output_path / f"{table_name}.tex"
-            table_latex = table_to_latex(table, table_config["rows_to_chart"])
+            latex_path = arguments.output / f"{table_name}.tex"
+            latex_path.parent.mkdir(parents=True, exist_ok=True)
+            latex_table = table_to_latex(table, table_config["rows_to_chart"])
             with open(latex_path, 'w') as f:
-                f.write(table_latex)
+                f.write(latex_table)
+
+            # Save Markdown
+            markdown_path = arguments.output / f"{table_name}.md"
+            markdown_path.parent.mkdir(parents=True, exist_ok=True)
+            markdown_table = table_to_markdown(table, table_config["rows_to_chart"])
+            with open(markdown_path, 'w') as f:
+                f.write(markdown_table)
                 
             logger.info(f"Successfully saved {table_name}")
 

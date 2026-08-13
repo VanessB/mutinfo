@@ -1,0 +1,42 @@
+name: highdim/convergence/estimator_dimensionality-n_samples-estimate.yaml
+
+sources:
+  MINE-DV:
+    path: "./outputs/highdim/FMMI/sample_complexity/MINE-DV"
+    aggregate: ["estimator.estimator.backbone_factory.hidden_dim"]
+    pin: {}
+    priority: 0
+  InfoNCE:
+    path: "./outputs/highdim/FMMI/sample_complexity/InfoNCE"
+    aggregate: ["estimator.estimator.backbone_factory.hidden_dim"]
+    pin: {}
+    priority: 0
+
+targets:
+  - name: "MAE"
+    function:
+      _target_: __main__.MAE
+      _partial_: true
+      first: "target"
+      second: "estimate.mean"
+
+postprocessing:
+  - name: "value_uncertainty"
+    function:
+      _target_: __main__.format_uncertainty
+      _partial_: true
+      value: "estimate.mean"
+      uncertainty: "estimate.std"
+
+outputs: ["MAE", "estimate.mean", "estimate.std"]
+
+aggregation:
+  by: "MAE"
+  output: "value_uncertainty"
+
+column_to_chart:
+  name: "n_samples"
+
+rows_to_chart: ["Source", "Distribution", "raw.dimensionality"]
+pin:
+  raw.mutual_information: 2.0

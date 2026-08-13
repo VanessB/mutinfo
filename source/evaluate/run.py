@@ -2,13 +2,12 @@ import hydra
 import mutinfo
 import numpy
 import traceback
+import yaml
 
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
-from tqdm import trange
-
-import yaml
+from tqdm import tqdm
 
 import bebeziana
 
@@ -16,23 +15,24 @@ import bebeziana
 def ndarray_representer(dumper: yaml.Dumper, array: numpy.ndarray) -> yaml.Node:
     return dumper.represent_list(array.tolist())
 
-#OmegaConf.register_new_resolver("round", lambda x, n_digits=1: round(float(x), n_digits))
 OmegaConf.register_new_resolver("round", lambda x, n_digits=1: f"{float(x):.{int(n_digits)}f}")
+OmegaConf.register_new_resolver("range", lambda start, stop, step=1: list(range(start, stop, step)))
 
 
 @hydra.main(version_base=None, config_path="./config.d", config_name="config")
 def run_test(config : DictConfig) -> None:
     try:
-        # Switched to reseeding each run for better reproducibility.
-        #bebeziana.seed_everything(config["seed"], to_be_seeded=config["to_be_seeded"])
-
         # Resolving some parts of the config and storing them separately for later post-processing.
         setup = {}
         setup["estimator"]    = OmegaConf.to_container(config["estimator"], resolve=True)
         setup["distribution"] = OmegaConf.to_container(config["distribution"], resolve=True)
 
-        setup["n_samples"] = int(config["n_samples"])
-        setup["n_runs"]    = int(config["n_runs"])
+        if isinstance(config["n_samples"], DictConfig) and "_target_" in config["n_samples"].keys():
+            setup["n_samples"] = int(instantiate(config["n_samples"], _convert_="object"))
+        else:
+            setup["n_samples"] = int(config["n_samples"])
+
+        setup["seeds"] = config["seeds"]
 
         # Include optional keys in a separate setup config.
         optional_keys = ["raw", "processed", "name", "key"]
@@ -42,13 +42,12 @@ def run_test(config : DictConfig) -> None:
 
         # Instantiate random variable for pre-experiment probing.
         random_variable = instantiate(config["distribution"], _convert_="object")
-        #setup["target"] = random_variable.target
 
         # Probe estimator to determine its number of parameters.
         setup["n_parameters"] = 0
         if "parameters_counter" in config:
             estimator = instantiate(config["estimator"], _convert_="object")
-            x, y      = random_variable.rvs(config["n_samples"])
+            x, y      = random_variable.rvs(setup["n_samples"])
             
             parameters_counter    = instantiate(config["parameters_counter"], _convert_="object")
             setup["n_parameters"] = parameters_counter(estimator, x, y)
@@ -69,13 +68,13 @@ def run_test(config : DictConfig) -> None:
 
         del random_variable
             
-        for index in trange(config["n_runs"]):
-            bebeziana.seed_everything(config["seed"] + index, to_be_seeded=config["to_be_seeded"])
+        for seed in tqdm(setup["seeds"]):
+            bebeziana.seed_everything(seed, to_be_seeded=config["to_be_seeded"])
             
             estimator       = instantiate(config["estimator"], _convert_="object")
             random_variable = instantiate(config["distribution"], _convert_="object")
 
-            x, y = random_variable.rvs(config["n_samples"])
+            x, y = random_variable.rvs(setup["n_samples"])
             results["estimate"]["values"].append(estimator(x, y))
 
         for statistic in ["estimate"]:
