@@ -5,26 +5,89 @@ build-backend = "hatchling.build"
 [project]
 name = "mutinfo"
 version = "2026.05.1"
+description = "Mutual information estimation benchmarks and tests"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+
+authors = [
+  { name = "Butakov Ivan", email = "vanessbut@yandex.com" },
+]
+
+maintainers = [
+  { name = "Butakov Ivan", email = "vanessbut@yandex.com" },
+]
+
+keywords = [
+  "mutual information",
+  "information theory",
+  "benchmarks",
+]
+
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+]
+
 dependencies = [
   "numpy>=1.26",
   "scipy>=1.12",
   "scikit-learn>=1.5",
+  "tqdm>=4.66",
+  "pyyaml>=6.0",
 ]
-requires-python = ">=3.8"
-authors = [
-  {name = "Butakov Ivan", email = "vanessbut@yandex.com"},
+
+[project.optional-dependencies]
+eval = [
+  "hydra-core>=1.3",
+  "omegaconf>=2.3",
+  "pandas>=2.0",
+  "polars>=0.20",
 ]
-maintainers = [
-  {name = "Butakov Ivan", email = "vanessbut@yandex.com"}
+
+notebooks = [
+  "jupyter>=1.0",
+  "ipykernel>=6.0",
+  "matplotlib>=3.8",
 ]
-description = "Mutual information estimation benchmarks and tests"
-readme = "README.md"
-license = {file = "LICENSE"}
-keywords = ["mutual information", "information theory", "benchmarks"]
-classifiers = [
-  "Development Status :: 1 - Planning",
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+
+torch = [
+  "torch>=2.2",
+  "torchvision>=0.17",
+  "pytorch-lightning>=2.2",
+  "diffusers>=0.27",
+  "torchdiffeq>=0.2",
+  "wandb>=0.16",
+  "psutil>=5.9",
+]
+
+all = [
+  "hydra-core>=1.3",
+  "omegaconf>=2.3",
+  "pandas>=2.0",
+  "polars>=0.20",
+  "jupyter>=1.0",
+  "ipykernel>=6.0",
+  "matplotlib>=3.8",
+  "torch>=2.2",
+  "torchvision>=0.17",
+  "pytorch-lightning>=2.2",
+  "diffusers>=0.27",
+  "torchdiffeq>=0.2",
+  "wandb>=0.16",
+  "psutil>=5.9",
+]
+
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.4",
 ]
 
 [project.urls]
@@ -34,3 +97,15 @@ Changelog = "https://github.com/VanessB/mutinfo/blob/master/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["source/python/mutinfo"]
+
+[tool.pytest.ini_options]
+pythonpath = ["source/python"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []

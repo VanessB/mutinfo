@@ -1,5 +1,6 @@
 import functools
 import inspect
+import math
 import numpy
 
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
@@ -161,12 +162,26 @@ class TransformedInformationEstimator(InformationEstimator):
     """
     Base class for transform-based estimators
     (e.g., Sliced Mutual Information).
+
+    The estimation pipeline is split into two clearly separated stages so that
+    subclasses (and callers) can customize *aggregation* without having to
+    re-implement the Monte-Carlo transform loop:
+
+    * :method:`_sample_transformed_estimates` repeatedly applies ``transform`` to
+      the inputs and evaluates ``estimator`` on each transformed pair, returning
+      the raw per-transform estimates as a 1-D array. This is the geometry /
+      "how to project" stage, fully delegated to ``transform``.
+    * :method:`_aggregate` collapses that array into a single scalar. By default
+      it is the arithmetic mean (recovering standard sliced MI). It can be
+      overridden in a subclass, or replaced per-instance by passing an
+      ``aggregate`` callable to the constructor.
     """
 
     _parameter_constraints: dict = {
         "estimator": [InformationEstimator],
         "transform": [TransformerMixin],
         "n_transform_samples": [int],
+        "aggregate": [callable, None],
     }
 
     def __init__(
@@ -174,6 +189,7 @@ class TransformedInformationEstimator(InformationEstimator):
         estimator: InformationEstimator,
         transform: TransformerMixin,
         n_transform_samples: int=1,
+        aggregate: Callable[[numpy.ndarray], float] | None=None,
     ) -> None:
         """
         Create an instance of `TransformedInformationEstimator` class.
@@ -187,18 +203,73 @@ class TransformedInformationEstimator(InformationEstimator):
         n_transform_samples : int, optional
             Non-negative number of Monte-Carlo samples,
             used in combination with random transforms.
+        aggregate : Callable[[numpy.ndarray], float], optional
+            Aggregation rule mapping the array of per-transform estimates to a
+            single scalar. If ``None`` (default), the arithmetic mean is used,
+            recovering the standard sliced-MI estimate. Subclasses may instead
+            override :meth:`_aggregate`.
         """
         
         self.estimator = estimator
         self.transform = transform
         self.n_transform_samples = n_transform_samples
+        self.aggregate = aggregate
 
         self._validate_params()
 
-        #if not (n_transform_samples is None or isinstance(n_transform_samples, int)):
-        #    raise TypeError("Expected `n_transform_samples` to be of type `int` or None.")
         if n_transform_samples < 1:
             raise ValueError("Expected `n_transform_samples` to be positive")
+
+    def _sample_transformed_estimates(
+        self,
+        arrays: tuple[numpy.ndarray, ...],
+    ) -> numpy.ndarray:
+        """
+        Apply the transform ``n_transform_samples`` times and evaluate the
+        backbone estimator on each transformed tuple.
+
+        Parameters
+        ----------
+        arrays : tuple[numpy.ndarray, ...]
+            Samples from random vectors.
+
+        Returns
+        -------
+        results : numpy.ndarray
+            1-D array of per-transform estimates of length
+            ``n_transform_samples``.
+        """
+
+        results = numpy.empty(self.n_transform_samples, dtype=numpy.float64)
+        for transform_sample_index in range(self.n_transform_samples):
+            transformed_arrays = self.transform.fit_transform(arrays)
+            results[transform_sample_index] = self.estimator(*transformed_arrays)
+
+        return results
+
+    def _aggregate(self, values: numpy.ndarray) -> float:
+        """
+        Aggregate the per-transform estimates into a single scalar.
+
+        Default behavior is the arithmetic mean (standard sliced MI). If an
+        ``aggregate`` callable was supplied to the constructor, it is used
+        instead. Subclasses requiring extra (introspectable) parameters --
+        e.g. an inverse temperature -- should override this method directly.
+
+        Parameters
+        ----------
+        values : numpy.ndarray
+            Raw per-transform estimates.
+
+        Returns
+        -------
+        estimate : float
+            Aggregated estimate.
+        """
+
+        if self.aggregate is None:
+            return float(values.mean())
+        return float(self.aggregate(values))
 
     def __call__(
         self,
@@ -214,26 +285,26 @@ class TransformedInformationEstimator(InformationEstimator):
         arrays : tuple[array_like]
             Samples from random vectors.
         std : bool
-            Calculate standard deviation based on Monte-Carlo transform
-            sampling.
+            Also return the standard error of the raw per-transform estimates
+            (computed *before* aggregation), as a diagnostic of transform
+            variance.
 
         Returns
         -------
         estimate : float
-            Estimated value of the quantity.
-        estimate_std : float or None
-            Standard deviation of the estimate, or None if `std=False`
+            Aggregated estimate of the quantity.
+        estimate_std : float
+            Standard error of the raw per-transform estimates. Returned only
+            if ``std=True``.
         """
 
-        results = numpy.empty(self.n_transform_samples, dtype=numpy.float64)
-        for transform_sample_index in range(self.n_transform_samples):
-            transformed_arrays = self.transform.fit_transform(arrays)
-            results[transform_sample_index] = self.estimator(*transformed_arrays)
+        results = self._sample_transformed_estimates(arrays)
+        estimate = self._aggregate(results)
 
         if std:
-            return results.mean(), results.std() / math.sqrt(self.n_transform_samples)
+            return estimate, float(results.std() / math.sqrt(self.n_transform_samples))
         else:
-            return results.mean()
+            return estimate
 
 
 class JointTransform(BaseEstimator, TransformerMixin):

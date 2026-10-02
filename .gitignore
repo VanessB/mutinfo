@@ -28,3 +28,8 @@ wandb
 *.jsonl
 *.json
 *.pt
+
+.venv
+uv.lock
+
+experiments/
