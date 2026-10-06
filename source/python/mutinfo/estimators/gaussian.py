@@ -209,3 +209,77 @@ class DualTotalCorrelation(InformationEstimator):
                 start = end
     
             return 0.5 * (sum_logdet_leave_one - (n_arrays - 1) * logdet)
+
+class OInformation(InformationEstimator):
+    """
+    Gaussian O-Information.
+
+    For k random vectors, O-Information = TC - DTC.
+    """
+
+    def __init__(self, biased: bool=False) -> None:
+        """
+        Initialize the Gaussian O-Information estimator.
+
+        Parameters
+        ----------
+        biased : bool, optional
+            If True, use the biased covariance estimator (divide by n).
+            If False (default), use the unbiased estimator (divide by n-1).
+        """
+        
+        super().__init__()
+
+        self.biased = biased
+
+    @InformationEstimator.check_arguments
+    def __call__(self, *arrays: numpy.ndarray) -> float:
+        """
+        Estimate O-Information.
+
+        Parameters
+        ----------
+        *arrays : numpy.ndarray
+            Variable number of arrays, each of shape (n_samples, d_i) or (n_samples,).
+
+        Returns
+        -------
+        o_information: float
+            Gaussian O-Information estimate.
+        """
+
+
+        n_arrays = len(arrays)
+        is_one_array = n_arrays == 1
+        arrays = [array.reshape(array.shape[0], -1) for array in arrays]
+
+        joint  = arrays[0] if is_one_array else numpy.hstack(arrays)
+        cov    = numpy.cov(joint, rowvar=False, bias=self.biased)
+        logdet = numpy.linalg.slogdet(cov)[1]
+
+        # Treat one array as a stack of d one-dimensional arrays.
+        if is_one_array:
+            sum_logdet_diag = numpy.log(numpy.diag(cov)).sum()
+            
+            # Efficient calculation using the inverse matrix trick.
+            inverse_cov = numpy.linalg.inv(cov)
+            
+            return 0.5 * (sum_logdet_diag - numpy.log(numpy.diag(inverse_cov)).sum()) - logdet
+        else:
+            sum_logdet_diag = 0.0
+            sum_logdet_leave_one = 0.0
+            start = 0
+            for array in arrays:
+                size = array.shape[-1]
+                end  = start + size
+
+                block = cov[start:end,start:end]
+                sum_logdet_diag += numpy.linalg.slogdet(block)[1]
+                
+                keep = list(range(start)) + list(range(start + size, cov.shape[0]))
+                block = cov[numpy.ix_(keep, keep)]
+                sum_logdet_leave_one += numpy.linalg.slogdet(block)[1]
+                
+                start = end
+    
+            return 0.5 * (sum_logdet_diag - sum_logdet_leave_one + (n_arrays - 2) * logdet)
