@@ -1,0 +1,34 @@
+name: highdim/TRE/estimator-distribution-dimensionality-estimate
+
+sources:
+  cFMMI:
+    path: "./outputs/highdim/TRE/2026-01-27/cFMMI"
+    aggregate: ["estimator.estimator.estimator_factory.reverse", "estimator.estimator.estimator_factory.marginalizer._target_", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.backbone_factory.hidden_dim"]
+    pin: {}
+    priority: 0
+  jFMMI:
+    path: "./outputs/highdim/TRE/2026-01-27/jFMMI"
+    aggregate: ["estimator.estimator.estimator_factory.reverse", "estimator.estimator.estimator_factory.marginalizer._target_", "estimator.estimator.backbone_factory.dropout", "estimator.estimator.backbone_factory.hidden_dim"]
+    pin: {}
+    priority: 0
+
+targets:
+  - name: "MAE"
+    function:
+      _target_: __main__.MAE
+      _partial_: true
+      first: "raw.dimensionality"
+      second: "mutual_information.mean"
+
+outputs: ["MAE", "mutual_information.mean"]
+
+aggregation:
+  by: "MAE"
+  output: "mutual_information.mean"
+
+column_to_chart:
+  name: "raw.dimensionality"
+
+rows_to_chart: ["Source", "Distribution"]
+pin:
+  raw.mutual_information: 0.5

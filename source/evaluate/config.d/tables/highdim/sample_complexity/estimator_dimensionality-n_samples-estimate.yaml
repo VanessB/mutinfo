@@ -1,0 +1,47 @@
+name: highdim/sample_complexity/estimator_dimensionality-n_samples-estimate
+
+sources:
+  #cFMMI:
+  #  path: "./outputs/highdim/FMMI/sample_complexity/cFMMI"
+  #  aggregate: ["estimator.estimator.estimator_factory.marginalizer._target_"]
+  #  pin: {"estimator.estimator.backbone_factory.hidden_dim": 64}
+  #  priority: 0
+  #jFMMI:
+  #  path: "./outputs/highdim/FMMI/sample_complexity/jFMMI"
+  #  aggregate: ["estimator.estimator.estimator_factory.marginalizer._target_"]
+  #  pin: {"estimator.estimator.backbone_factory.hidden_dim": 64}
+  #  priority: 0
+  KSG:
+    path: "./outputs/highdim/FMMI/sample_complexity/KSG"
+    aggregate: ["estimator.k_neighbors"]
+    pin: {}
+    priority: 0
+
+targets:
+  - name: "MAE"
+    function:
+      _target_: __main__.RMAE
+      _partial_: true
+      first: "target"
+      second: "estimate.mean"
+
+postprocessing:
+  - name: "value_uncertainty"
+    function:
+      _target_: __main__.format_uncertainty
+      _partial_: true
+      value: "estimate.mean"
+      uncertainty: "estimate.std"
+
+outputs: ["MAE", "estimate.mean", "estimate.std"]
+
+aggregation:
+  by: "MAE"
+  output: "value_uncertainty"
+
+column_to_chart:
+  name: "n_samples"
+
+rows_to_chart: ["Source", "raw.dimensionality"]
+pin:
+  raw.mutual_information: 2.0

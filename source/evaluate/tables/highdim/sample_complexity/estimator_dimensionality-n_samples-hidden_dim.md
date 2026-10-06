@@ -1,0 +1,30 @@
+|                                       |   100 |   316 |   1000 |   3162 |   10000 |
+|:--------------------------------------|------:|------:|-------:|-------:|--------:|
+| ('_0_cFMMI', 'Correlated Normal', 1)  |    16 |    16 |    256 |     64 |     128 |
+| ('_0_cFMMI', 'Correlated Normal', 2)  |    16 |    16 |     16 |    256 |      64 |
+| ('_0_cFMMI', 'Correlated Normal', 4)  |    16 |    16 |     16 |     16 |      16 |
+| ('_0_cFMMI', 'Correlated Normal', 8)  |    16 |    16 |     16 |     16 |      16 |
+| ('_0_cFMMI', 'Correlated Normal', 16) |    16 |    16 |     16 |     32 |      32 |
+| ('_0_cFMMI', 'Correlated Normal', 32) |    64 |    32 |     32 |     64 |      64 |
+| ('_0_cFMMI', 'Correlated Normal', 64) |   512 |    64 |     64 |     64 |     128 |
+| ('_0_cFMMI', 'Smoothed Uniform', 1)   |    32 |    32 |    512 |     16 |     256 |
+| ('_0_cFMMI', 'Smoothed Uniform', 2)   |    16 |    16 |    256 |     16 |      16 |
+| ('_0_cFMMI', 'Smoothed Uniform', 4)   |    16 |    16 |     32 |    512 |      32 |
+| ('_0_cFMMI', 'Smoothed Uniform', 8)   |    16 |    16 |     16 |     32 |     256 |
+| ('_0_cFMMI', 'Smoothed Uniform', 16)  |    16 |    16 |     16 |     32 |     128 |
+| ('_0_cFMMI', 'Smoothed Uniform', 32)  |    64 |    32 |     32 |     64 |     128 |
+| ('_0_cFMMI', 'Smoothed Uniform', 64)  |   512 |    64 |     64 |    128 |     128 |
+| ('_0_jFMMI', 'Correlated Normal', 1)  |    16 |   256 |    512 |     16 |      32 |
+| ('_0_jFMMI', 'Correlated Normal', 2)  |    16 |    16 |     64 |     64 |     512 |
+| ('_0_jFMMI', 'Correlated Normal', 4)  |    32 |    64 |     32 |     32 |      32 |
+| ('_0_jFMMI', 'Correlated Normal', 8)  |   128 |    64 |     64 |     64 |      64 |
+| ('_0_jFMMI', 'Correlated Normal', 16) |   512 |   128 |    128 |    256 |     128 |
+| ('_0_jFMMI', 'Correlated Normal', 32) |   128 |   512 |    256 |    512 |     512 |
+| ('_0_jFMMI', 'Correlated Normal', 64) |   256 |   256 |    512 |    512 |     512 |
+| ('_0_jFMMI', 'Smoothed Uniform', 1)   |    16 |   128 |    128 |    512 |     512 |
+| ('_0_jFMMI', 'Smoothed Uniform', 2)   |    32 |   256 |    256 |    128 |      32 |
+| ('_0_jFMMI', 'Smoothed Uniform', 4)   |    64 |   128 |    128 |    256 |      64 |
+| ('_0_jFMMI', 'Smoothed Uniform', 8)   |   128 |    64 |    128 |    512 |     512 |
+| ('_0_jFMMI', 'Smoothed Uniform', 16)  |   512 |   128 |    128 |    512 |     512 |
+| ('_0_jFMMI', 'Smoothed Uniform', 32)  |   128 |   512 |    256 |    512 |      32 |
+| ('_0_jFMMI', 'Smoothed Uniform', 64)  |    16 |   256 |    512 |    512 |     512 |
